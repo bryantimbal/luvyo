@@ -1,0 +1,107 @@
+// SakayPinoy PWA shell: hash router, bottom navigation, lifecycle.
+import { store } from './lib/store.js';
+import { api, syncDataset } from './lib/api.js';
+import { auth } from './lib/auth.js';
+import { setTileUrl } from './lib/map.js';
+import { t } from './lib/i18n.js';
+import { $, esc } from './lib/ui.js';
+import { startReminderLoop } from './screens/notifications.js';
+
+const routes = {
+  onboarding: () => import('./screens/onboarding.js'),
+  login: () => import('./screens/login.js'),
+  home: () => import('./screens/home.js'),
+  pick: () => import('./screens/pick.js'),
+  results: () => import('./screens/results.js'),
+  route: () => import('./screens/route.js'),
+  navigate: () => import('./screens/navigate.js'),
+  explore: () => import('./screens/explore.js'),
+  map: () => import('./screens/map.js'),
+  jeepney: () => import('./screens/jeepney.js'),
+  line: () => import('./screens/line.js'),
+  tricycle: () => import('./screens/tricycle.js'),
+  ridehail: () => import('./screens/ridehail.js'),
+  fare: () => import('./screens/fare.js'),
+  myroutes: () => import('./screens/myroutes.js'),
+  commute: () => import('./screens/commute.js'),
+  history: () => import('./screens/history.js'),
+  advisories: () => import('./screens/advisories.js'),
+  assistant: () => import('./screens/assistant.js'),
+  notifications: () => import('./screens/notifications.js'),
+  profile: () => import('./screens/profile.js'),
+  settings: () => import('./screens/settings.js'),
+  privacy: () => import('./screens/privacy.js'),
+  report: () => import('./screens/report.js'),
+};
+const TAB_OF = { home: 'home', pick: 'home', results: 'home', route: 'home', navigate: 'home', explore: 'explore', map: 'explore', jeepney: 'explore', line: 'explore', tricycle: 'explore', ridehail: 'explore', fare: 'explore', advisories: 'explore', assistant: 'home', myroutes: 'myroutes', history: 'commute', commute: 'commute', profile: 'profile', settings: 'profile', privacy: 'profile', notifications: 'home', report: 'explore' };
+const NO_NAV = new Set(['onboarding', 'login', 'navigate']);
+
+let cleanup = null;
+const view = $('#view');
+
+export function go(hash) { location.hash = hash; }
+
+function parse() {
+  const raw = location.hash.replace(/^#\/?/, '');
+  const [path, qs] = raw.split('?');
+  const [name, ...params] = path.split('/').filter(Boolean);
+  return { name: name || '', params: params.map(decodeURIComponent), query: Object.fromEntries(new URLSearchParams(qs || '')) };
+}
+
+async function render() {
+  let { name, params, query } = parse();
+  const s = store.get();
+  if (!s.onboarded && name !== 'onboarding' && name !== 'privacy') return go('#/onboarding');
+  if (!routes[name]) return go('#/home');
+  if (typeof cleanup === 'function') { try { cleanup(); } catch {} }
+  cleanup = null;
+  renderNav(name);
+  view.setAttribute('aria-busy', 'true');
+  try {
+    const mod = await routes[name]();
+    // Fresh container per render so screen event listeners never accumulate.
+    const el = document.createElement('div');
+    view.replaceChildren(el);
+    view.className = 'view screen-' + name;
+    window.scrollTo(0, 0);
+    cleanup = await mod.default(el, { params, query, go, refresh: render });
+  } catch (e) {
+    console.error(e);
+    view.innerHTML = `<div class="pad"><h2>Something went wrong</h2><p class="muted">${esc(e.message)}</p><button class="btn" onclick="location.reload()">Reload</button></div>`;
+  }
+  view.removeAttribute('aria-busy');
+}
+
+function renderNav(name) {
+  const nav = $('#bottom-nav');
+  nav.hidden = NO_NAV.has(name);
+  const active = TAB_OF[name];
+  const tabs = [['home', '🏠'], ['explore', '🧭'], ['myroutes', '⭐'], ['commute', '💰'], ['profile', '👤']];
+  const labels = { home: t('home'), explore: t('explore'), myroutes: t('myRoutes'), commute: t('commute'), profile: t('profile') };
+  nav.innerHTML = tabs.map(([id, ic]) => `<a href="#/${id}" class="${active === id ? 'active' : ''}" ${active === id ? 'aria-current="page"' : ''}><span aria-hidden="true">${ic}</span><span>${labels[id]}</span></a>`).join('');
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-back]')) { e.preventDefault(); history.length > 1 ? history.back() : go('#/home'); }
+});
+
+function netBanner() {
+  $('#offline-banner').hidden = navigator.onLine;
+  $('#offline-banner').textContent = `Offline – showing cached data${store.get().lastSync ? ' (last synced ' + new Date(store.get().lastSync).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) + ')' : ''}`;
+}
+addEventListener('online', () => { netBanner(); syncDataset(); });
+addEventListener('offline', netBanner);
+addEventListener('hashchange', render);
+
+(async function boot() {
+  netBanner();
+  const cfg = await api.config();
+  auth.configure(cfg);
+  setTileUrl(cfg.tiles);
+  syncDataset(); // background – enables offline routing
+  await render();
+  startReminderLoop();
+  setTimeout(() => $('#splash')?.classList.add('gone'), 350);
+  setTimeout(() => $('#splash')?.remove(), 900);
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('/sw.js').catch(() => {});
+})();
