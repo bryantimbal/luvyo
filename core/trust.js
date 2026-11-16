@@ -6,8 +6,9 @@ export const SOURCE_TYPES = {
   live_quote: { rank: 2, label: 'Official live provider quote', short: 'Live quote' },
   operator: { rank: 3, label: 'Verified operator information', short: 'Operator' },
   admin_verified: { rank: 4, label: 'Administrator-verified', short: 'Admin-verified' },
-  community: { rank: 5, label: 'Community-submitted (unverified)', short: 'Community' },
-  indicative: { rank: 6, label: 'Indicative estimate', short: 'Estimate' },
+  community_verified: { rank: 5, label: 'Verified by riders (community)', short: 'Rider-verified' },
+  community: { rank: 6, label: 'Community-submitted (unverified)', short: 'Community (unverified)' },
+  indicative: { rank: 7, label: 'Indicative estimate', short: 'Estimate' },
 };
 
 export function sourceLabel(type) {
@@ -18,14 +19,14 @@ export function sourceLabel(type) {
 export function weakestSource(types) {
   let worst = 'official';
   for (const t of types) {
-    if ((SOURCE_TYPES[t]?.rank ?? 6) > SOURCE_TYPES[worst].rank) worst = t;
+    if ((SOURCE_TYPES[t]?.rank ?? 7) > SOURCE_TYPES[worst].rank) worst = t;
   }
   return worst;
 }
 
 /** 0..1 confidence used by the "best overall" score. */
 export function confidence(type) {
-  return 1 - ((SOURCE_TYPES[type]?.rank ?? 6) - 1) * 0.1;
+  return 1 - ((SOURCE_TYPES[type]?.rank ?? 7) - 1) * 0.09;
 }
 
 export function isStale(lastVerified, now = new Date(), maxAgeDays = 365) {

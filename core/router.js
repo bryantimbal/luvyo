@@ -16,6 +16,7 @@ import { findSchedule, calculateFare, sumFares } from './fareEngine.js';
 import { rideMinutes, waitMinutes, walkMinutes, isOperating, addMinutes, timeBand } from './timeEngine.js';
 import { weakestSource } from './trust.js';
 import { rankOptions } from './ranking.js';
+import { lastTripPassed } from './community.js';
 
 const HAIL_MODES = new Set(['mc_taxi', 'tricycle']);
 const PRIVATE_MODES = new Set(['mc_taxi', 'ridehail_car', 'taxi']);
@@ -24,44 +25,111 @@ const mid = (r) => (r.min + r.max) / 2;
 // ---------------------------------------------------------------- graph ---
 
 const graphCache = new WeakMap();
+const FLEX_SPACING_KM = 0.12;
+
+/** Is this line "para anywhere" (board / alight at any point along the road)? */
+export function isFlexible(line, modes) {
+  return line.flexibleStops ?? !!modes.get(line.modeId)?.flexibleStops;
+}
+
+const pt = (p) => (Array.isArray(p) ? { lat: p[0], lng: p[1] } : p);
+
+/** Simple spatial grid (~1.1 km cells) so nearest-point lookups don't scan everything. */
+class Grid {
+  constructor(items, cell = 0.01) { this.cell = cell; this.m = new Map(); for (const it of items) this.add(it); }
+  key(lat, lng) { return `${Math.floor(lat / this.cell)}:${Math.floor(lng / this.cell)}`; }
+  add(it) { const k = this.key(it.lat, it.lng); (this.m.get(k) || this.m.set(k, []).get(k)).push(it); }
+  near(p, radiusKm, limit = Infinity) {
+    const r = Math.ceil(radiusKm / (this.cell * 111)) ;
+    const ci = Math.floor(p.lat / this.cell), cj = Math.floor(p.lng / this.cell);
+    const out = [];
+    for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) for (const it of this.m.get(`${ci + a}:${cj + b}`) || []) {
+      const km = haversineKm(p, it);
+      if (km <= radiusKm) out.push({ item: it, km });
+    }
+    return out.sort((x, y) => x.km - y.km).slice(0, limit);
+  }
+}
+
+/**
+ * Build the ordered node sequence for a line. Fixed-stop lines (rail, busway,
+ * terminal buses, ferries) use their stations only. Flexible lines get extra
+ * hidden points every ~120 m along the route geometry, named after the nearest
+ * landmark, so riders can board or say "Para!" anywhere.
+ */
+function lineSequence(line, stops, flexible, landmarks) {
+  const real = line.stopIds.map((id) => stops.get(id)).filter(Boolean);
+  if (!flexible) return { seq: real, virtual: [] };
+  const geom = line.shape?.length >= 2 ? line.shape.map(pt) : real;
+  const seq = [], virtual = [];
+  let k = 0;
+  const refName = (p) => {
+    let best = null;
+    for (const r of [...real, ...landmarks]) { const d = haversineKm(p, r); if (!best || d < best.d) best = { r, d }; }
+    return best ? (best.d < 0.06 ? best.r.name : `near ${best.r.name}`) : `along ${line.code}`;
+  };
+  const pushVirtual = (p) => {
+    const v = { id: `${line.id}~${k++}`, lat: p.lat, lng: p.lng, virtual: true, lineId: line.id, kind: 'route_point' };
+    v.name = refName(v);
+    virtual.push(v); seq.push(v);
+  };
+  // real stops are kept where they lie on the geometry
+  const realAt = new Map();
+  for (const r of real) {
+    let bi = 0, bd = Infinity;
+    geom.forEach((g, i) => { const d = haversineKm(r, g); if (d < bd) { bd = d; bi = i; } });
+    if (bd < 0.15) (realAt.get(bi) || realAt.set(bi, []).get(bi)).push(r);
+  }
+  for (let i = 0; i < geom.length; i++) {
+    const here = realAt.get(i);
+    if (here) seq.push(...here); else if (i === 0 || i === geom.length - 1) pushVirtual(geom[i]);
+    if (i === geom.length - 1) break;
+    const a = geom[i], b = geom[i + 1];
+    const n = Math.floor(haversineKm(a, b) / FLEX_SPACING_KM);
+    for (let s = 1; s <= n; s++) {
+      const t = s / (n + 1);
+      pushVirtual({ lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t });
+    }
+  }
+  return { seq, virtual };
+}
 
 export function buildGraph(ds) {
   if (graphCache.has(ds)) return graphCache.get(ds);
   const stops = new Map(ds.stops.map((s) => [s.id, s]));
   const modes = new Map(ds.modes.map((m) => [m.id, m]));
-  const rides = new Map(); // stopId -> [{ line, i, j }]
-  const walks = new Map(); // stopId -> [{ to, km }]
+  const rides = new Map(); // nodeId -> [{ line, i, ids, cum, flexible }]  (ride edges generated on demand)
+  const walks = new Map(); // nodeId -> [{ to, km }]
+  const stopModes = new Map();
   const lines = ds.lines.filter((l) => l.operational !== false && l.active !== false);
+  const landmarks = (ds.places || []).filter((p) => p.type === 'landmark').concat((ds.loadingSpots || []).filter((x) => x.status === 'community_verified'));
+  const lineSeqs = new Map();
   for (const line of lines) {
-    const ids = line.stopIds.filter((id) => stops.has(id));
+    const flexible = isFlexible(line, modes);
+    const { seq, virtual } = lineSequence(line, stops, flexible, landmarks);
+    for (const v of virtual) stops.set(v.id, v);
+    const ids = seq.map((x) => x.id);
+    const detour = line.detour ?? (line.shape ? 1.05 : modes.get(line.modeId)?.roadBased ? 1.2 : 1.05);
     const cum = [0];
-    for (let k = 1; k < ids.length; k++) cum.push(cum[k - 1] + haversineKm(stops.get(ids[k - 1]), stops.get(ids[k])) * (line.detour ?? (modes.get(line.modeId)?.roadBased ? 1.2 : 1.05)));
-    const add = (i, j) => {
-      const from = ids[i];
-      if (!rides.has(from)) rides.set(from, []);
-      rides.get(from).push({ line, i, j, ids, km: Math.abs(cum[j] - cum[i]) });
-    };
-    for (let i = 0; i < ids.length; i++)
-      for (let j = 0; j < ids.length; j++) {
-        if (i === j) continue;
-        if (j > i || line.bidirectional !== false) add(i, j);
-      }
+    for (let k = 1; k < seq.length; k++) cum.push(cum[k - 1] + haversineKm(seq[k - 1], seq[k]) * detour);
+    const isReal = seq.map((x) => !x.virtual);
+    const entry = { line, ids, cum, flexible, isReal };
+    lineSeqs.set(line.id, entry);
+    ids.forEach((id, i) => {
+      (rides.get(id) || rides.set(id, []).get(id)).push({ ...entry, i });
+      (stopModes.get(id) || stopModes.set(id, new Set()).get(id)).add(line.modeId);
+    });
   }
   const all = [...stops.values()];
+  const grid = new Grid(all);
   for (const s of all) {
-    walks.set(
-      s.id,
-      nearest(all, s, ds.settings.transferWalkKm ?? 0.5)
-        .filter((n) => n.item.id !== s.id)
-        .map((n) => ({ to: n.item.id, km: walkKm(s, n.item) }))
-    );
+    walks.set(s.id, grid.near(s, ds.settings.transferWalkKm ?? 0.5)
+      .filter((n) => n.item.id !== s.id && !(s.virtual && n.item.virtual && s.lineId === n.item.lineId))
+      .map((n) => ({ to: n.item.id, km: walkKm(s, n.item) })));
   }
-  const stopModes = new Map();
-  for (const l of lines) for (const id of l.stopIds) {
-    if (!stopModes.has(id)) stopModes.set(id, new Set());
-    stopModes.get(id).add(l.modeId);
-  }
-  const g = { stops, modes, rides, walks, stopModes, lines };
+  // a "para anywhere" point is a useful alighting spot only if you can transfer from it
+  for (const s of all) if (s.virtual) s.transferable = walks.get(s.id).length > 0;
+  const g = { stops, modes, rides, walks, stopModes, lines, grid, lineSeqs };
   graphCache.set(ds, g);
   return g;
 }
@@ -139,32 +207,36 @@ function search(ds, g, O, D, opts, prof) {
   const dist = new Map();
   const prev = new Map();
   const heap = new MinHeap();
-  const key = (n, h) => `${n}|${h}`;
+  // state = node | hail-used | arrived-by-walking. Walking may only follow a ride,
+  // so walks never chain through the dense "para anywhere" points.
+  const key = (n, h, wk = 0) => `${n}|${h}|${wk}`;
   dist.set(key('O', 0), 0);
-  heap.push({ w: 0, n: 'O', h: 0, elapsed: 0, boards: 0 });
+  heap.push({ w: 0, n: 'O', h: 0, wk: 0, elapsed: 0, boards: 0 });
   const oZone = zoneFor(ds, O), dZone = zoneFor(ds, D);
+  const nearD = opts.nearD ??= new Set(g.grid.near(D, maxWalk).map((x) => x.item.id));
 
   const relax = (cur, to, h, edge) => {
     if (edge.type === 'ride' && opts.maxTransfers != null && cur.boards + 1 > opts.maxTransfers + 1) return;
-    const k = key(to, h);
+    const wk = edge.type === 'walk' ? 1 : 0;
+    const k = key(to, h, wk);
     const w = cur.w + weightOf(prof, edge);
     if (w < (dist.get(k) ?? Infinity)) {
       dist.set(k, w);
-      prev.set(k, { from: key(cur.n, cur.h), edge, toNode: to });
-      heap.push({ w, n: to, h, elapsed: cur.elapsed + mid(edge.time) + mid(edge.wait), boards: cur.boards + (edge.type === 'ride' ? 1 : 0) });
+      prev.set(k, { from: key(cur.n, cur.h, cur.wk), edge, toNode: to });
+      heap.push({ w, n: to, h, wk, elapsed: cur.elapsed + mid(edge.time) + mid(edge.wait), boards: cur.boards + (edge.type === 'ride' ? 1 : 0) });
     }
   };
 
   while (heap.size) {
     const cur = heap.pop();
-    const k = key(cur.n, cur.h);
+    const k = key(cur.n, cur.h, cur.wk);
     if (cur.w > (dist.get(k) ?? Infinity)) continue;
     if (cur.n === 'D') return reconstruct(prev, k);
     const at = addMinutes(start, cur.elapsed);
     const here = cur.n === 'O' ? O : g.stops.get(cur.n);
 
     if (cur.n === 'O') {
-      for (const { item: s, km } of nearest(ds.stops, O, Math.max(maxWalk, hailOk ? 8 : 0))) {
+      for (const { item: s, km } of g.grid.near(O, Math.max(maxWalk, hailOk ? 8 : 0))) {
         const wk = km * 1.25;
         if (wk <= maxWalk && allowed(opts, 'walk'))
           relax(cur, s.id, cur.h, walkEdge(ds, O, s, wk));
@@ -180,17 +252,26 @@ function search(ds, g, O, D, opts, prof) {
     for (const r of g.rides.get(cur.n) || []) {
       if (!allowed(opts, r.line.modeId)) continue;
       if (!isOperating(r.line, at).ok) continue;
-      const ck = `${r.line.id}|${r.i}|${r.j}|${band}`;
-      let e = opts.edgeCache.get(ck);
-      if (!e) { e = rideEdge(ds, g, r, opts, at); opts.edgeCache.set(ck, e); }
-      relax(cur, r.ids[r.j], cur.h, e);
+      for (let j = 0; j < r.ids.length; j++) {
+        if (j === r.i || (j < r.i && r.line.bidirectional === false)) continue;
+        // on flexible lines don't ride less than ~400 m – just walk
+        if (r.flexible) {
+          if (Math.abs(r.cum[j] - r.cum[r.i]) < 0.4) continue;
+          const node = g.stops.get(r.ids[j]);
+          if (node.virtual && !node.transferable && !nearD.has(node.id)) continue;
+        }
+        const ck = `${r.line.id}|${r.i}|${j}|${band}`;
+        let e = opts.edgeCache.get(ck);
+        if (!e) { e = rideEdge(ds, g, { ...r, j, km: Math.abs(r.cum[j] - r.cum[r.i]) }, opts, at); opts.edgeCache.set(ck, e); }
+        relax(cur, r.ids[j], cur.h, e);
+      }
     }
-    // walking transfers
-    if (allowed(opts, 'walk'))
+    // walking transfers (only right after a ride)
+    if (allowed(opts, 'walk') && !cur.wk)
       for (const w of g.walks.get(cur.n) || []) relax(cur, w.to, cur.h, walkEdge(ds, here, g.stops.get(w.to), w.km));
     // egress
     const toD = walkKm(here, D);
-    if (toD <= maxWalk && allowed(opts, 'walk')) relax(cur, 'D', cur.h, walkEdge(ds, here, D, toD));
+    if (toD <= maxWalk && allowed(opts, 'walk') && !cur.wk) relax(cur, 'D', cur.h, walkEdge(ds, here, D, toD));
     else if (hailOk && cur.h === 0 && isTrunkStop(g, cur.n) && haversineKm(here, D) <= 8) {
       const m = pickHail(opts, dZone, here);
       if (m) relax(cur, 'D', 1, { ...hailLeg(ds, m, here, D, opts, at, dZone), from: here, to: D });
@@ -216,7 +297,9 @@ function walkEdge(ds, a, b, km) {
 
 function rideEdge(ds, g, r, opts, at) {
   const { line, i, j, ids, km } = r;
-  const nStops = Math.abs(j - i);
+  const lo = Math.min(i, j), hi = Math.max(i, j);
+  const realBetween = r.isReal ? r.isReal.slice(lo, hi + 1).filter(Boolean).length - 1 : hi - lo;
+  const nStops = r.flexible ? Math.round(km * 1.5) : Math.max(0, realBetween);
   const t = rideMinutes(ds.timeProfiles, line.modeId, km, at, nStops);
   const w = waitMinutes(ds.timeProfiles, line.modeId, line);
   const fare = fareFor(ds, { lineId: line.id, operatorId: line.operatorId, modeId: line.modeId },
@@ -225,7 +308,7 @@ function rideEdge(ds, g, r, opts, at) {
   const overhead = ds.timeProfiles.modes[line.modeId]?.stationOverheadMin ?? [0, 0];
   return {
     type: 'ride', modeId: line.modeId, lineId: line.id, km, from: g.stops.get(ids[i]), to: g.stops.get(ids[j]),
-    viaStopIds: span, time: { min: t.min + overhead[0], max: t.max + overhead[1] }, wait: { min: w.min, max: w.max, known: w.known },
+    viaStopIds: span, realStops: Math.max(0, realBetween), flexible: !!r.flexible, time: { min: t.min + overhead[0], max: t.max + overhead[1] }, wait: { min: w.min, max: w.max, known: w.known },
     fare, traffic: t.traffic,
   };
 }
@@ -258,7 +341,11 @@ function describeLeg(ds, g, e) {
     from: { name: e.from.name ?? 'Start', lat: e.from.lat, lng: e.from.lng, stopId: e.from.id },
     to: { name: e.to.name ?? 'Destination', lat: e.to.lat, lng: e.to.lng, stopId: e.to.id },
     distanceKm: e.km, time: e.time, wait: e.wait, fare: e.fare, path,
-    stopsCount: e.viaStopIds ? e.viaStopIds.length - 1 : 0,
+    stopsCount: e.realStops ?? (e.viaStopIds ? e.viaStopIds.length - 1 : 0),
+    flexible: !!e.flexible,
+    community: line?.community ?? null,
+    communityWait: line?.communityWait ?? null,
+    communityDriven: !!g.modes.get(e.modeId)?.communityDriven,
     verified: line ? line.verified === true : null,
     sourceType: line?.sourceType ?? e.fare?.sourceType ?? null,
     dataset: line?.dataset ?? e.fare?.dataset ?? null,
@@ -268,11 +355,19 @@ function describeLeg(ds, g, e) {
   return leg;
 }
 
+// "near X" names come from para-anywhere route points
+const at = (name) => (name.startsWith('near ') ? name : `at ${name}`);
+const to = (name) => (name.startsWith('near ') ? `the route ${name}` : name);
+
 function instruction(l) {
   const m = Math.round(l.distanceKm * 1000);
-  if (l.type === 'walk') return `Lakad: walk about ${m >= 1000 ? (m / 1000).toFixed(1) + ' km' : m + ' m'} to ${l.to.name}.`;
+  if (l.type === 'walk') return `Lakad: walk about ${m >= 1000 ? (m / 1000).toFixed(1) + ' km' : m + ' m'} to ${to(l.to.name)}.`;
   if (l.modeId === 'mc_taxi') return `Book a motorcycle taxi from ${l.from.name} to ${l.to.name} (≈${l.distanceKm.toFixed(1)} km).`;
   if (l.modeId === 'tricycle') return `Sakay: take a tricycle from ${l.from.name} to ${l.to.name}.`;
+  if (l.flexible) {
+    const sign = l.signboard ? ` with signboard “${l.signboard}”` : '';
+    return `Sakay: wait ${at(l.from.name)} and flag down a ${l.modeLabel.toLowerCase()}${sign}. Say “Para!” ${at(l.to.name)} (≈${l.distanceKm.toFixed(1)} km).`;
+  }
   if (l.modeId === 'rail') return `Sakay: board ${l.lineName} at ${l.from.name} station, ride ${l.stopsCount} station(s), baba at ${l.to.name}.`;
   const sign = l.signboard ? ` (signboard: “${l.signboard}”)` : '';
   return `Sakay: board the ${l.modeLabel.toLowerCase()} ${l.lineName}${sign} at ${l.from.name}. Baba at ${l.to.name} (${l.stopsCount} stop${l.stopsCount === 1 ? '' : 's'}).`;
@@ -281,6 +376,7 @@ function instruction(l) {
 function mergeWalks(legs) {
   const out = [];
   for (const l of legs) {
+    if (l.type === 'walk' && l.distanceKm < 0.02) continue; // you're already there
     const last = out[out.length - 1];
     if (last && last.type === 'walk' && l.type === 'walk') {
       last.distanceKm += l.distanceKm; last.time = { min: last.time.min + l.time.min, max: last.time.max + l.time.max };
@@ -308,6 +404,13 @@ function finalize(ds, legs, opts, kind, title) {
   if (legs.some((l) => l.verified === false)) warnings.push('Includes a route that is not yet verified.');
   if (legs.some((l) => l.dataset === 'development')) warnings.push('Uses development data – verify before travelling.');
   if (legs.some((l) => l.modeId === 'ridehail_car' || l.modeId === 'taxi')) warnings.push('Tolls not included unless stated.');
+  for (const l of legs) {
+    const line = l.lineId ? ds.lines.find((x) => x.id === l.lineId) : null;
+    if (!line) continue;
+    for (const n of line.communityNotes || []) warnings.push(`Riders report (${n.riders}): ${n.text}`);
+    if (line.community?.saysChanged) warnings.push(`${line.community.saysChanged} rider(s) say the ${line.code} route may have changed.`);
+    if (lastTripPassed(line, opts.departAt)) warnings.push(`Riders report the last ${line.code} trip leaves around ${line.communityLastTrip.time}.`);
+  }
   if (opts.budget && fare.min > opts.budget) warnings.push(`Over your ₱${opts.budget} budget.`);
   return {
     id: kind + ':' + legs.map((l) => l.lineId || l.modeId).join('>'),
@@ -392,15 +495,17 @@ export function planJourney(ds, q) {
     const seen = new Set();
     const push = (o) => { if (o && !seen.has(o.id)) { seen.add(o.id); results.push(o); } };
     if (!opts.privateOnly) {
+      const take = (edges) => {
+        if (!edges || !edges.some((e) => e.type === 'ride' && !HAIL_MODES.has(e.modeId))) return;
+        const legs = mergeWalks(edges.map((e) => describeLeg(ds, g, e)));
+        push(finalize(ds, legs, opts, legs.some((l) => HAIL_MODES.has(l.modeId)) ? 'mixed' : 'transit'));
+      };
       for (const prof of PROFILES) {
-        for (const ex of [[], ['rail'], ['jeepney'], ['bus']]) {
-          const sub = { ...opts, exclude: [...opts.exclude, ...ex] };
-          const edges = search(ds, g, O, D, sub, prof);
-          if (!edges || !edges.some((e) => e.type === 'ride' && !HAIL_MODES.has(e.modeId))) continue;
-          const legs = mergeWalks(edges.map((e) => describeLeg(ds, g, e)));
-          const hasHail = legs.some((l) => HAIL_MODES.has(l.modeId));
-          push(finalize(ds, legs, opts, hasHail ? 'mixed' : 'transit'));
-        }
+        const base = search(ds, g, O, D, opts, prof);
+        take(base);
+        // alternatives: re-run without each public mode the best path relied on
+        const used = [...new Set((base || []).filter((e) => e.type === 'ride' && !HAIL_MODES.has(e.modeId)).map((e) => e.modeId))];
+        for (const m of used) take(search(ds, g, O, D, { ...opts, exclude: [...opts.exclude, m] }, prof));
       }
     }
     for (const o of directOptions(ds, g, O, D, opts)) push(o);
@@ -480,9 +585,10 @@ export function compareProviders(ds, O, D, { passengerType = 'regular', departAt
 export function estimateFare(ds, { modeId, lineId, fromStopId, toStopId, origin, destination, passengerType = 'regular', at = new Date() }) {
   const g = buildGraph(ds);
   if (lineId) {
-    const r = (g.rides.get(fromStopId) || []).find((x) => x.line.id === lineId && x.ids[x.j] === toStopId);
-    if (!r) return { available: false, reason: 'These stops are not on this line in that order.' };
-    const e = rideEdge(ds, g, r, { passengerType }, at);
+    const base = (g.rides.get(fromStopId) || []).find((x) => x.line.id === lineId);
+    const j = base ? base.ids.indexOf(toStopId) : -1;
+    if (!base || j < 0 || j === base.i || (j < base.i && base.line.bidirectional === false)) return { available: false, reason: 'These stops are not on this line in that order.' };
+    const e = rideEdge(ds, g, { ...base, j, km: Math.abs(base.cum[j] - base.cum[base.i]) }, { passengerType }, at);
     return { ...e.fare, distanceKm: e.km, time: e.time };
   }
   const km = heuristicRoadProvider.roadKm(origin, destination);

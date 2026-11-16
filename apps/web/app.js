@@ -6,6 +6,7 @@ import { setTileUrl } from './lib/map.js';
 import { t } from './lib/i18n.js';
 import { $, esc } from './lib/ui.js';
 import { startReminderLoop } from './screens/notifications.js';
+import { community } from './lib/community.js';
 
 const routes = {
   onboarding: () => import('./screens/onboarding.js'),
@@ -32,8 +33,12 @@ const routes = {
   settings: () => import('./screens/settings.js'),
   privacy: () => import('./screens/privacy.js'),
   report: () => import('./screens/report.js'),
+  ambag: () => import('./screens/ambag.js'),
+  contribute: () => import('./screens/contribute.js'),
+  record: () => import('./screens/record.js'),
+  leaderboard: () => import('./screens/leaderboard.js'),
 };
-const TAB_OF = { home: 'home', pick: 'home', results: 'home', route: 'home', navigate: 'home', explore: 'explore', map: 'explore', jeepney: 'explore', line: 'explore', tricycle: 'explore', ridehail: 'explore', fare: 'explore', advisories: 'explore', assistant: 'home', myroutes: 'myroutes', history: 'commute', commute: 'commute', profile: 'profile', settings: 'profile', privacy: 'profile', notifications: 'home', report: 'explore' };
+const TAB_OF = { home: 'home', pick: 'home', results: 'home', route: 'home', navigate: 'home', explore: 'explore', map: 'explore', jeepney: 'explore', line: 'explore', tricycle: 'explore', ridehail: 'explore', fare: 'explore', advisories: 'explore', assistant: 'home', myroutes: 'myroutes', history: 'myroutes', commute: 'myroutes', profile: 'profile', ambag: 'ambag', contribute: 'ambag', record: 'ambag', leaderboard: 'ambag', settings: 'profile', privacy: 'profile', notifications: 'home', report: 'explore' };
 const NO_NAV = new Set(['onboarding', 'login', 'navigate']);
 
 let cleanup = null;
@@ -76,9 +81,10 @@ function renderNav(name) {
   const nav = $('#bottom-nav');
   nav.hidden = NO_NAV.has(name);
   const active = TAB_OF[name];
-  const tabs = [['home', '🏠'], ['explore', '🧭'], ['myroutes', '⭐'], ['commute', '💰'], ['profile', '👤']];
-  const labels = { home: t('home'), explore: t('explore'), myroutes: t('myRoutes'), commute: t('commute'), profile: t('profile') };
-  nav.innerHTML = tabs.map(([id, ic]) => `<a href="#/${id}" class="${active === id ? 'active' : ''}" ${active === id ? 'aria-current="page"' : ''}><span aria-hidden="true">${ic}</span><span>${labels[id]}</span></a>`).join('');
+  // Centre "Ambag" (contribute) button is raised: community data powers jeeps, trikes, taxis & ride-hailing.
+  const tabs = [['home', '🏠'], ['explore', '🧭'], ['ambag', '＋'], ['myroutes', '⭐'], ['profile', '👤']];
+  const labels = { home: t('home'), explore: t('explore'), ambag: 'Ambag', myroutes: t('myRoutes'), profile: t('profile') };
+  nav.innerHTML = tabs.map(([id, ic]) => `<a href="#/${id}" class="${active === id ? 'active' : ''} ${id === 'ambag' ? 'fab' : ''}" ${active === id ? 'aria-current="page"' : ''}><span aria-hidden="true">${ic}</span><span>${labels[id]}</span></a>`).join('');
 }
 
 document.addEventListener('click', (e) => {
@@ -101,6 +107,7 @@ addEventListener('hashchange', render);
   syncDataset(); // background – enables offline routing
   await render();
   startReminderLoop();
+  community.flush();
   setTimeout(() => $('#splash')?.classList.add('gone'), 350);
   setTimeout(() => $('#splash')?.remove(), 900);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('/sw.js').catch(() => {});

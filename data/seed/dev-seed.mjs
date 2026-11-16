@@ -77,15 +77,15 @@ const ferry = stopsFor('ferry', 'ferry_terminal', [['Pinagbuhatan Ferry Station'
 
 const modes = [
   { id: 'walk', label: 'Walk', labelFil: 'Lakad', category: 'walk', icon: '🚶', color: '#6B7A72' },
-  { id: 'jeepney', label: 'Jeepney', labelFil: 'Jeep', category: 'public', icon: '🚙', color: '#176B45', roadBased: true },
+  { id: 'jeepney', label: 'Jeepney', flexibleStops: true, communityDriven: true, labelFil: 'Jeep', category: 'public', icon: '🚙', color: '#176B45', roadBased: true },
   { id: 'bus', label: 'Bus', labelFil: 'Bus', category: 'public', icon: '🚌', color: '#2563EB', roadBased: true },
   { id: 'rail', label: 'Train', labelFil: 'Tren', category: 'public', icon: '🚆', color: '#7C3AED' },
-  { id: 'uv', label: 'UV Express', labelFil: 'UV Express', category: 'public', icon: '🚐', color: '#0E7490', roadBased: true },
-  { id: 'tricycle', label: 'Tricycle', labelFil: 'Traysikel', category: 'local', icon: '🛺', color: '#C2410C', roadBased: true },
+  { id: 'uv', label: 'UV Express', flexibleStops: true, communityDriven: true, labelFil: 'UV Express', category: 'public', icon: '🚐', color: '#0E7490', roadBased: true },
+  { id: 'tricycle', label: 'Tricycle', flexibleStops: true, communityDriven: true, labelFil: 'Traysikel', category: 'local', icon: '🛺', color: '#C2410C', roadBased: true },
   { id: 'ferry', label: 'Ferry', labelFil: 'Bangka/Ferry', category: 'water', icon: '⛴️', color: '#0369A1' },
-  { id: 'mc_taxi', label: 'Motorcycle taxi', labelFil: 'Motor taxi', category: 'private', icon: '🏍️', color: '#E85D3F', roadBased: true },
-  { id: 'ridehail_car', label: 'Ride-hailing car', labelFil: 'Ride-hailing', category: 'private', icon: '🚗', color: '#059669', roadBased: true },
-  { id: 'taxi', label: 'Taxi', labelFil: 'Taxi', category: 'private', icon: '🚕', color: '#CA8A04', roadBased: true },
+  { id: 'mc_taxi', communityDriven: true, label: 'Motorcycle taxi', labelFil: 'Motor taxi', category: 'private', icon: '🏍️', color: '#E85D3F', roadBased: true },
+  { id: 'ridehail_car', communityDriven: true, label: 'Ride-hailing car', labelFil: 'Ride-hailing', category: 'private', icon: '🚗', color: '#059669', roadBased: true },
+  { id: 'taxi', communityDriven: true, label: 'Taxi', labelFil: 'Taxi', category: 'private', icon: '🚕', color: '#CA8A04', roadBased: true },
 ];
 
 const operators = [

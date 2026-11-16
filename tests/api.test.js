@@ -78,3 +78,68 @@ test('static serving blocks path traversal', async () => {
   const res = await fetch(base + '/core/..%2f..%2fpackage.json');
   assert.notEqual(res.status, 200);
 });
+
+// ------------------------------------------------------------ community ---
+const rider = (n) => ({ 'X-Contributor-Id': `device-rider-${n}` });
+
+test('community: contribute → peers confirm → verified, rewards paid, data used', async () => {
+  // official-only modes are refused
+  const rail = await j('/api/community/contributions', { method: 'POST', headers: rider(1), body: { type: 'fare', lineId: 'mrt3', payload: { amount: 20 } } });
+  assert.equal(rail.status, 400);
+  const sub = await j('/api/community/contributions', { method: 'POST', headers: rider(1), body: { type: 'fare', zoneId: 'zone-marikina-dev', lat: 14.631, lng: 121.083, payload: { amount: 30 }, displayName: 'Ana' } });
+  assert.equal(sub.status, 200);
+  assert.equal(sub.body.status, 'pending');
+  assert.equal(sub.body.pointsEarned, 5);
+  const id = sub.body.id;
+  // duplicate within 6 h
+  assert.equal((await j('/api/community/contributions', { method: 'POST', headers: rider(1), body: { type: 'fare', zoneId: 'zone-marikina-dev', payload: { amount: 30 } } })).status, 409);
+  // can't confirm own; can't confirm twice
+  assert.equal((await j(`/api/community/contributions/${id}/confirm`, { method: 'POST', headers: rider(1), body: { agree: true } })).status, 403);
+  // verify feed shows it to others, not to the author
+  assert.ok((await j('/api/community/verify?lat=14.631&lng=121.083', { headers: rider(2) })).body.some((x) => x.id === id));
+  assert.ok(!(await j('/api/community/verify', { headers: rider(1) })).body.some((x) => x.id === id));
+  let last;
+  for (const n of [2, 3, 4, 5]) last = await j(`/api/community/contributions/${id}/confirm`, { method: 'POST', headers: rider(n), body: { agree: true, lat: 14.632, lng: 121.084 } });
+  assert.equal((await j(`/api/community/contributions/${id}/confirm`, { method: 'POST', headers: rider(2), body: { agree: true } })).status, 409);
+  assert.equal(last.body.status, 'community_verified');
+  const me = await j('/api/community/me', { headers: rider(1) });
+  assert.equal(me.body.points, 5 + 20);
+  assert.equal(me.body.reputation, 10);
+  assert.ok(me.body.badges.find((b) => b.id === 'unang_para').earned);
+  // verified fare now used by the engine
+  const zones = await j('/api/tricycle/zones');
+  assert.equal(zones.body.find((z) => z.id === 'zone-marikina-dev').fare.sourceType, 'community_verified');
+  const lb = await j('/api/community/leaderboard?period=week&contributorId=device-rider-1');
+  assert.equal(lb.body.rows[0].displayName, 'Ana');
+  assert.equal(lb.body.myRank, 1);
+  // public dataset never exposes contributor records
+  const pub = await j('/api/dataset');
+  assert.equal(pub.body.contributors, undefined);
+  assert.equal(pub.body.contributions, undefined);
+});
+
+test('community: disputing a fare with a value files a counter-report; moderators can override; suspension blocks', async () => {
+  const sub = await j('/api/community/contributions', { method: 'POST', headers: rider(6), body: { type: 'fare', lineId: 'jp-cubao-quiapo', payload: { amount: 20 } } });
+  const no = await j(`/api/community/contributions/${sub.body.id}/confirm`, { method: 'POST', headers: rider(7), body: { agree: false, value: 13 } });
+  assert.equal(no.body.status, 'disputed');
+  assert.ok(no.body.counterReportId);
+  assert.equal((await j(`/api/admin/community/contributions/${sub.body.id}/moderate`, { method: 'POST', headers: auth('tok-view'), body: { status: 'rejected' } })).status, 403);
+  const mod = await j(`/api/admin/community/contributions/${sub.body.id}/moderate`, { method: 'POST', headers: auth('tok-mod'), body: { status: 'rejected', note: 'Minimum fare is lower' } });
+  assert.equal(mod.body.status, 'rejected');
+  const list = await j('/api/admin/community/contributors', { headers: auth('tok-mod') });
+  assert.ok(list.body.find((c) => c.id === 'device-rider-6').reputation < 0);
+  await j('/api/admin/community/contributors/device-rider-6', { method: 'POST', headers: auth('tok-mod'), body: { suspended: true } });
+  assert.equal((await j('/api/community/contributions', { method: 'POST', headers: rider(6), body: { type: 'wait', lineId: 'jp-cubao-quiapo', payload: { minutes: 5 } } })).status, 403);
+});
+
+test('community: "still accurate?" prompts for nearby community routes create route checks', async () => {
+  const feed = await j('/api/community/verify?lat=14.6040&lng=121.0170', { headers: rider(8) });
+  assert.ok(Array.isArray(feed.body), JSON.stringify(feed.body));
+  const prompt = feed.body.find((x) => x.id === 'line:jp-cubao-quiapo');
+  assert.ok(prompt);
+  const r = await j('/api/community/contributions/line:jp-cubao-quiapo/confirm', { method: 'POST', headers: rider(8), body: { agree: true } });
+  assert.equal(r.body.ok, true);
+  const feed2 = await j('/api/community/verify?lat=14.6040&lng=121.0170', { headers: rider(8) });
+  assert.ok(Array.isArray(feed2.body), JSON.stringify(feed2.body));
+  assert.ok(!feed2.body.some((x) => x.id === 'line:jp-cubao-quiapo'));
+});

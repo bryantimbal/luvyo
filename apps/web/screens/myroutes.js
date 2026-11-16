@@ -1,5 +1,5 @@
 import { store, uid, FREE_SAVED_ROUTE_LIMIT } from '../lib/store.js';
-import { header, esc, fare, dur, empty, toast, sheet, dateStr } from '../lib/ui.js';
+import { myNav, header, esc, fare, dur, empty, toast, sheet, dateStr } from '../lib/ui.js';
 import { setJourney, search } from '../lib/journey.js';
 import { t } from '../lib/i18n.js';
 
@@ -10,7 +10,7 @@ export default function myroutes(el, { go, refresh }) {
   const pickedLoc = sessionStorage.getItem('sp:pick:saveloc');
   if (pickedLoc) { sessionStorage.removeItem('sp:pick:saveloc'); askLabel(JSON.parse(pickedLoc), refresh); }
 
-  el.innerHTML = `${header(t('myRoutes'), { back: false })}
+  el.innerHTML = `${header(t('myRoutes'), { back: false })}${myNav('myroutes')}
   <div class="pad stack">
     <div class="section-title"><h2>Saved places</h2><a class="btn sm soft" href="#/pick/destination?target=saveloc&back=%23%2Fmyroutes">+ Add</a></div>
     ${s.savedLocations.length ? `<ul class="list">${s.savedLocations.map((p) => `<li class="item"><span class="ic">${p.label === 'Home' ? '🏠' : p.label === 'Work' ? '💼' : p.label === 'School' ? '🎒' : '⭐'}</span><span class="grow"><b>${esc(p.label)}</b><div class="muted small">${esc(p.name)}</div></span><button class="btn sm" data-goto="${esc(p.id)}">Go</button><button class="btn sm ghost" data-delloc="${esc(p.id)}" aria-label="Remove">✕</button></li>`).join('')}</ul>`

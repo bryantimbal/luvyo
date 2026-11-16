@@ -25,7 +25,16 @@ function unavailable(schedule, reason) {
 }
 
 /** Pick the schedule in force for a scope at a given date. */
-export function findSchedule(schedules, { lineId, modeId, operatorId, zoneId, providerId }, at = new Date()) {
+const scheduleCache = new WeakMap();
+export function findSchedule(schedules, scope, at = new Date()) {
+  let m = scheduleCache.get(schedules);
+  if (!m) scheduleCache.set(schedules, (m = new Map()));
+  const k = `${scope.lineId}|${scope.modeId}|${scope.operatorId}|${scope.zoneId}|${scope.providerId}|${at.toISOString().slice(0, 10)}`;
+  if (!m.has(k)) m.set(k, findScheduleUncached(schedules, scope, at));
+  return m.get(k);
+}
+
+function findScheduleUncached(schedules, { lineId, modeId, operatorId, zoneId, providerId }, at) {
   const inForce = (s) =>
     s.active !== false &&
     (!s.effectiveFrom || new Date(s.effectiveFrom) <= at) &&

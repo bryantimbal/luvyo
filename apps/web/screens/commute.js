@@ -1,6 +1,6 @@
 // Commute expense tracker (spec §16).
 import { store, uid } from '../lib/store.js';
-import { header, esc, peso, empty, toast, sheet, modeIcon } from '../lib/ui.js';
+import { myNav, header, esc, peso, empty, toast, sheet, modeIcon } from '../lib/ui.js';
 
 const dayKey = (d) => new Date(new Date(d).getTime() + 8 * 3600000).toISOString().slice(0, 10);
 
@@ -25,7 +25,7 @@ export default function commute(el, { refresh }) {
   const bd = s.profile.budgetDaily, bm = s.profile.budgetMonthly;
 
   el.innerHTML = `${header('Commute expenses', { back: false, right: '<a class="icon-btn" href="#/history" aria-label="History">🕘</a>' })}
-  <div class="pad stack">
+  ${myNav('commute')}<div class="pad stack">
     <div class="stats">
       <div class="stat"><span class="muted small">Today</span><b>${peso(sum(todayX))}</b>${bd ? `<div class="progress ${sum(todayX) > bd ? 'over' : ''}"><div style="width:${Math.min(100, (sum(todayX) / bd) * 100)}%"></div></div><span class="muted small">of ${peso(bd)}</span>` : ''}</div>
       <div class="stat"><span class="muted small">This month</span><b>${peso(sum(monthX))}</b>${bm ? `<div class="progress ${sum(monthX) > bm ? 'over' : ''}"><div style="width:${Math.min(100, (sum(monthX) / bm) * 100)}%"></div></div><span class="muted small">of ${peso(bm)}</span>` : ''}</div>

@@ -1,5 +1,7 @@
 import { store, uid, FREE_SAVED_ROUTE_LIMIT, pushNotification } from '../lib/store.js';
-import { header, esc, fare, dur, km, clock, sourceBadge, dateStr, toast, sheet, modeIcon, TAG_LABEL, $ } from '../lib/ui.js';
+import { header, esc, fare, dur, km, clock, sourceBadge, riderBadge, dateStr, toast, sheet, modeIcon, TAG_LABEL, $ } from '../lib/ui.js';
+import { community } from '../lib/community.js';
+import { lastKnown } from '../lib/location.js';
 import { getJourney, getPlan } from '../lib/journey.js';
 import { createMap, pin, drawRoute, fit } from '../lib/map.js';
 import { api } from '../lib/api.js';
@@ -18,9 +20,13 @@ export function legHtml(l, i, { state = '' } = {}) {
         <span>⏱ ${esc(dur(l.time))}</span>
         ${l.wait?.max ? `<span>⏳ ${l.modeId === 'mc_taxi' || l.modeId === 'tricycle' || l.modeId === 'taxi' || l.modeId === 'ridehail_car' ? 'pickup' : 'wait'} ${Math.round(l.wait.min)}–${Math.round(l.wait.max)} min${l.wait.known === false ? ' (typical)' : ''}</span>` : ''}
         <span>📏 ${esc(km(l.distanceKm))}</span>
-        ${l.verified === false ? '<span class="badge badge-dev">Route not verified</span>' : ''}
+        ${l.verified === false && !l.community?.riders ? '<span class="badge badge-dev">Route not verified</span>' : ''}${riderBadge(l.community)}
+        ${l.communityWait ? `<span>👥 riders wait ${l.communityWait.min}–${l.communityWait.max} min</span>` : ''}
         ${l.fare && !l.fare.available ? `<span class="badge badge-dev">${esc(l.fare.reason || 'Fare unavailable')}</span>` : ''}
       </div>
+      ${l.communityDriven && l.type === 'ride' ? `<div class="crowd-row"><span class="small muted">${l.flexible ? '✋ Para anywhere along the route · ' : ''}Still accurate?</span>
+        ${l.lineId ? `<button class="btn sm soft" data-check="${esc(l.lineId)}|yes">👍</button><button class="btn sm ghost" data-check="${esc(l.lineId)}|no">👎</button>` : ''}
+        <a class="btn sm ghost" href="#/contribute/fare?${l.lineId ? 'lineId=' + esc(l.lineId) : 'modeId=' + esc(l.modeId)}${l.providers?.[0] ? '&providerId=' + esc(l.providers[0]) : ''}&distanceKm=${l.distanceKm.toFixed(1)}">₱ Report fare</a></div>` : ''}
     </div></li>`;
 }
 
@@ -68,7 +74,14 @@ export default function route(el, { params, go }) {
     fit(map, o.legs.flatMap((l) => l.path));
   }
 
-  el.addEventListener('click', (e) => {
+  el.addEventListener('click', async (e) => {
+    const chk = e.target.closest('[data-check]');
+    if (chk) {
+      const [lineId, ans] = chk.dataset.check.split('|');
+      chk.parentElement.querySelectorAll('[data-check]').forEach((b) => (b.disabled = true));
+      try { const r = await community.confirm('line:' + lineId, { agree: ans === 'yes', ...(lastKnown() || {}) }); toast(r.queued ? 'Saved – will send when online' : `Salamat! +${r.pointsEarned} pt`, 'success'); }
+      catch (err) { toast(err.message, 'error'); }
+    }
     if (e.target.closest('[data-save]')) saveRoute(o, j);
     if (e.target.closest('[data-log]')) logFare(o);
     if (e.target.closest('[data-remind]')) reminder(o, j);

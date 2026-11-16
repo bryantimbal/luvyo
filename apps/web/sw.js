@@ -1,13 +1,13 @@
 // Service worker: app shell precache, network-first API with cached fallback,
 // bounded map-tile cache. Cached API responses are only served offline, and the
 // app labels them as cached.
-const VERSION = 'sp-v1';
+const VERSION = 'sp-v2';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png',
   '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css',
-  '/lib/ui.js', '/lib/store.js', '/lib/api.js', '/lib/i18n.js', '/lib/map.js', '/lib/auth.js', '/lib/location.js', '/lib/journey.js',
-  '/core/geo.js', '/core/trust.js', '/core/fareEngine.js', '/core/timeEngine.js', '/core/router.js', '/core/ranking.js', '/core/assistant.js',
-  ...['onboarding', 'login', 'home', 'pick', 'results', 'route', 'navigate', 'explore', 'map', 'jeepney', 'line', 'tricycle', 'ridehail', 'fare', 'myroutes', 'commute', 'history', 'advisories', 'assistant', 'notifications', 'profile', 'settings', 'privacy', 'report'].map((s) => `/screens/${s}.js`),
+  '/lib/ui.js', '/lib/store.js', '/lib/api.js', '/lib/i18n.js', '/lib/map.js', '/lib/auth.js', '/lib/location.js', '/lib/journey.js', '/lib/community.js',
+  '/core/geo.js', '/core/trust.js', '/core/fareEngine.js', '/core/timeEngine.js', '/core/router.js', '/core/ranking.js', '/core/assistant.js', '/core/community.js',
+  ...['onboarding', 'login', 'home', 'pick', 'results', 'route', 'navigate', 'explore', 'map', 'jeepney', 'line', 'tricycle', 'ridehail', 'fare', 'myroutes', 'commute', 'history', 'advisories', 'assistant', 'notifications', 'profile', 'settings', 'privacy', 'report', 'ambag', 'contribute', 'record', 'leaderboard'].map((s) => `/screens/${s}.js`),
 ];
 const TILE_LIMIT = 400;
 

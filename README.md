@@ -51,6 +51,7 @@ core/            Isomorphic engines (run on server AND in the browser for offlin
   ranking.js       Cheapest / Fastest / Fewest transfers / Best overall (generalised cost)
   assistant.js     Grounded English/Filipino/Taglish commute assistant
   trust.js         Source-type classification and freshness
+  community.js     Contributions, peer verification, reputation, rewards → engine data
 server/          Zero-dependency Node API + static host, RBAC, rate limiting, audit log
 apps/web/        Android-first PWA (24 screens, offline-capable)
 apps/admin/      Admin portal (routes, stops, fares, providers, zones, advisories, moderation, import, audit)
@@ -76,5 +77,12 @@ docs/            Architecture, data verification, Play Store, notifications, roa
   official app or site.
 - **Community reports never become official automatically.**
 - **Sponsored content cannot affect rankings.** `rankOptions` has no input for it.
+
+## Community data (Ambag)
+
+Jeepneys, UV Express, tricycles, taxis and ride-hailing have no reliable central data, so riders supply
+and verify it. Votes are reputation-weighted and fade over time. Rail, terminal buses, P2P and ferries
+stay on official data. Details are in [docs/COMMUNITY.md](docs/COMMUNITY.md), and screen mockups are in
+[docs/mockups/](docs/mockups/).
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.

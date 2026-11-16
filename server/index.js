@@ -12,11 +12,24 @@ import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { JsonRepository, activeAdvisories, httpError, COLLECTIONS } from './repo.js';
 import { planJourney, nearbyStops, linesPassing, compareProviders, estimateFare } from '../core/router.js';
 import { answer } from '../core/assistant.js';
+import { applyCommunity } from '../core/community.js';
+import { registerCommunity } from './community.js';
 import { PASSENGER_TYPES } from '../core/fareEngine.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = +process.env.PORT || 8787;
 export const repo = new JsonRepository();
+
+// Engine dataset = raw data + verified community data. Rebuilt when data changes
+// and every 10 minutes (confidence decays with time).
+let derived = null, derivedVer = 0, derivedAt = 0;
+export function engineDs() {
+  if (!derived || derivedVer !== repo.version || Date.now() - derivedAt > 600000) {
+    derived = applyCommunity(repo.dataset());
+    derivedVer = repo.version; derivedAt = Date.now();
+  }
+  return derived;
+}
 
 // ------------------------------------------------------------- auth/RBAC ---
 const ROLE_PERMS = {
@@ -52,7 +65,7 @@ function adminFor(req, perm) {
 // ---------------------------------------------------------- rate limiting ---
 const buckets = new Map();
 function rateLimit(req, cost = 1, perMin = 120) {
-  const ip = req.socket.remoteAddress || 'x';
+  const ip = (req.socket.remoteAddress || 'x') + '|' + perMin; // one bucket per limit class
   const now = Date.now();
   const b = buckets.get(ip) || { tokens: perMin, at: now };
   b.tokens = Math.min(perMin, b.tokens + ((now - b.at) / 60000) * perMin);
@@ -108,7 +121,7 @@ on('GET', '/api/config', () => ({
   tiles: process.env.TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   passengerTypes: PASSENGER_TYPES,
 }));
-on('GET', '/api/dataset', () => repo.publicDataset());
+on('GET', '/api/dataset', () => repo.publicDataset(engineDs()));
 
 on('GET', '/api/places', ({ q }) => {
   const s = (q.q || '').toLowerCase().trim();
@@ -127,7 +140,7 @@ on('GET', '/api/places', ({ q }) => {
 on('POST', '/api/routes/search', async ({ req }) => {
   rateLimit(req, 2);
   const b = await body(req);
-  const ds = repo.dataset();
+  const ds = engineDs();
   const q = {
     origin: pt(b.origin, 'origin'), destination: pt(b.destination, 'destination'),
     departAt: b.departAt || undefined, arriveBy: b.arriveBy || undefined,
@@ -152,7 +165,7 @@ on('POST', '/api/fare/calculate', async ({ req }) => {
   rateLimit(req);
   const b = await body(req);
   repo.track('fare');
-  const ds = repo.dataset();
+  const ds = engineDs();
   const pax = PASSENGER_TYPES.includes(b.passengerType) ? b.passengerType : 'regular';
   const legs = Array.isArray(b.legs) ? b.legs.slice(0, 8) : [b];
   const results = legs.map((l) => l.lineId
@@ -162,29 +175,29 @@ on('POST', '/api/fare/calculate', async ({ req }) => {
   return { legs: results, total: { min: ok.reduce((s, r) => s + r.min, 0), max: ok.reduce((s, r) => s + r.max, 0), partial: ok.length !== results.length } };
 });
 
-on('GET', '/api/nearby', ({ q }) => nearbyStops(repo.dataset(), { lat: num(q.lat, 'lat'), lng: num(q.lng, 'lng') }, Math.min(3, +q.radius || 1)));
+on('GET', '/api/nearby', ({ q }) => nearbyStops(engineDs(), { lat: num(q.lat, 'lat'), lng: num(q.lng, 'lng') }, Math.min(3, +q.radius || 1)));
 
 on('GET', '/api/lines', ({ q }) => {
   const s = (q.q || '').toLowerCase();
-  const ds = repo.dataset();
+  const ds = engineDs();
   const stops = new Map(ds.stops.map((x) => [x.id, x]));
   return ds.lines
     .filter((l) => l.operational !== false && (!q.mode || l.modeId === q.mode))
     .filter((l) => !s || [l.name, l.code, l.signboard, ...l.stopIds.map((id) => stops.get(id)?.name)].some((x) => x && x.toLowerCase().includes(s)))
     .map((l) => ({ ...l, stops: l.stopIds.map((id) => stops.get(id)).filter(Boolean) }));
 });
-on('GET', '/api/lines/passing', ({ q }) => linesPassing(repo.dataset(), { lat: num(q.lat, 'lat'), lng: num(q.lng, 'lng') }, Math.min(2, +q.radius || 0.4), q.mode || null)
+on('GET', '/api/lines/passing', ({ q }) => linesPassing(engineDs(), { lat: num(q.lat, 'lat'), lng: num(q.lng, 'lng') }, Math.min(2, +q.radius || 0.4), q.mode || null)
   .map(({ line, km }) => ({ id: line.id, code: line.code, name: line.name, modeId: line.modeId, signboard: line.signboard, verified: line.verified, km })));
 
 on('GET', '/api/tricycle/zones', ({ q }) => {
-  const ds = repo.dataset();
+  const ds = engineDs();
   return ds.tricycleZones.filter((z) => z.active !== false).map((z) => ({ ...z, fare: ds.fareSchedules.find((f) => f.scope?.zoneId === z.id) ?? null }));
 });
 
 on('POST', '/api/ridehail/compare', async ({ req }) => {
   rateLimit(req);
   const b = await body(req);
-  const rows = compareProviders(repo.dataset(), pt(b.origin, 'origin'), pt(b.destination, 'destination'), { passengerType: b.passengerType || 'regular' });
+  const rows = compareProviders(engineDs(), pt(b.origin, 'origin'), pt(b.destination, 'destination'), { passengerType: b.passengerType || 'regular' });
   return rows;
 });
 on('POST', '/api/providers/:id/open', ({ params }) => { repo.track('provider', params.id); return { ok: true }; });
@@ -198,7 +211,7 @@ on('POST', '/api/assistant', async ({ req }) => {
   if (!qtext) throw httpError(400, 'message is required');
   const ctx = { passengerType: b.passengerType };
   if (b.currentLocation) ctx.currentLocation = pt(b.currentLocation, 'Current location');
-  const r = answer(repo.dataset(), qtext, ctx);
+  const r = answer(engineDs(), qtext, ctx);
   return { text: r.text, parsed: { origin: r.parsed.origin?.name ?? null, destination: r.parsed.destination?.name ?? null, budget: r.parsed.budget, intent: r.parsed.intent }, options: r.plan?.options?.slice(0, 3) ?? [] , query: r.plan?.query ?? null };
 });
 
@@ -236,6 +249,8 @@ on('DELETE', '/api/account', async ({ req }) => {
   return { ok: true }; // user rows are removed by ON DELETE CASCADE (see supabase/migrations)
 });
 
+registerCommunity(on, { repo, engineDs, rateLimit, body, str, num, adminFor: (req, p) => adminFor(req, p) });
+
 // ----------------------------------------------------------------- admin ---
 on('GET', '/api/admin/me', ({ req }) => { const a = adminFor(req, 'read'); return { ...a, perms: ROLE_PERMS[a.role] }; });
 on('GET', '/api/admin/analytics', ({ req }) => {
@@ -249,6 +264,7 @@ on('GET', '/api/admin/analytics', ({ req }) => {
     unverifiedLines: ds.lines.filter((l) => !l.verified).length,
     devRecords: COLLECTIONS.reduce((s, c) => s + (ds[c] || []).filter((x) => x.dataset === 'development').length, 0),
     users: { note: 'User counts (registered, DAU, MAU) come from Supabase auth when configured.' },
+    community: { contributors: ds.contributors.length, ...(engineDs().communitySummary || {}) },
   };
 });
 on('GET', '/api/admin/audit', ({ req, q }) => { adminFor(req, 'audit'); return repo.dataset().auditLog.slice(-(+q.limit || 200)).reverse(); });
@@ -333,7 +349,7 @@ async function serveStatic(res, path) {
 export const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   try {
-    if (req.method === 'OPTIONS') return send(res, 204, '', { 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' });
+    if (req.method === 'OPTIONS') return send(res, 204, '', { 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Contributor-Id' });
     if (url.pathname.startsWith('/api/')) {
       rateLimit(req, 0.5, 600);
       for (const r of routes) {

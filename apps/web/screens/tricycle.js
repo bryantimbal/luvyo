@@ -26,7 +26,8 @@ export default async function tricycle(el) {
           <dt>Coverage</dt><dd>${z.barangays?.length ? esc(z.barangays.join(', ')) : `~${z.radiusKm} km radius`}</dd>
           <dt>Terminals</dt><dd>${(z.terminals || []).map((t) => esc(t.name)).join('<br>') || '—'}</dd>
           <dt>Capacity</dt><dd>${z.capacity ? esc(z.capacity) + ' passengers' : 'Not verified'}</dd></dl>
-          <a class="btn sm ghost" style="margin-top:8px" href="#/report?category=tricycle_fare&zone=${esc(z.id)}">Report updated fare</a></div>`;
+          ${z.community ? `<div class="small" style="margin-top:6px">👥 Fare confirmed by ${z.community.riders} rider report(s)</div>` : ''}
+          <div class="row" style="margin-top:8px"><a class="btn sm" href="#/contribute/fare?zoneId=${esc(z.id)}">₱ I paid… (+5)</a><a class="btn sm soft" href="#/contribute/wait?modeId=tricycle&zoneId=${esc(z.id)}">⏳ Wait time</a></div></div>`;
       }).join('') : empty('🛺', 'No tricycle zones yet', 'Zones are added by administrators per LGU.')}
     </div>`;
     const map = createMap($('#m', el), { zoom: 13 });

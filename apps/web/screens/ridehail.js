@@ -16,13 +16,14 @@ export default async function ridehail(el, { go }) {
   try {
     const rows = await api.ridehail({ origin: j.origin, destination: j.destination, passengerType: store.get().profile.passengerType });
     $('#out', el).innerHTML = `
-      <div class="banner warn" style="margin:0 0 12px">No official live-pricing integrations are active. Fares below are <b>indicative estimates – final fare is determined by the provider</b>. Pickup times are typical ranges, not live.</div>
+      <div class="banner warn" style="margin:0 0 12px">No official live-pricing integrations are active. Fares are <b>estimates – final fare is determined by the provider</b>. Where riders have reported what they paid, estimates are calibrated and marked 👥 Rider-verified.</div>
       ${rows.map((r) => `<div class="card">
         <div class="row between"><b>${r.provider.modeId === 'mc_taxi' ? '🏍️' : '🚗'} ${esc(r.provider.name)}</b><span class="badge ${r.availability === 'confirmed' ? '' : 'src-indicative'}">${r.availability === 'confirmed' ? 'Available' : 'Availability unknown'}</span></div>
         <div class="muted small">${esc(r.vehicle)}</div>
         <div class="route-main"><div><div class="big">${esc(fare(r.fare))}</div><div class="muted small">${r.fare.available ? 'estimated fare' : esc(r.fare.reason)}</div></div><div><div class="big">${esc(dur(r.duration))}</div><div class="muted small">ride · ${esc(km(r.distanceKm))}</div></div></div>
         <div class="route-meta"><span>🕐 Pickup ${r.pickup ? `${r.pickup.min}–${r.pickup.max} min (typical)` : 'unknown'}</span><span>🚦 ${r.traffic === 'typical' ? 'Typical traffic model' : 'n/a'}</span></div>
         <div class="route-src">${sourceBadge(r.fare.sourceType, { dataset: r.fare.dataset, lastVerified: r.fare.lastVerified })}<span class="muted small">${esc(r.fare.sourceNote || '')}</span></div>
+        <a class="small" href="#/contribute/fare?providerId=${esc(r.provider.id)}&distanceKm=${r.distanceKm.toFixed(1)}">₱ Took this ride? Report what you actually paid (+5)</a>
         <div class="row" style="margin-top:10px"><a class="btn sm grow" href="${esc(r.provider.storeUrl || r.provider.website)}" target="_blank" rel="noopener" data-open="${esc(r.provider.id)}">Open ${esc(r.provider.name)}</a>${r.provider.website ? `<a class="btn sm ghost" href="${esc(r.provider.website)}" target="_blank" rel="noopener" data-open="${esc(r.provider.id)}">Website</a>` : ''}</div>
       </div>`).join('')}
       <p class="muted small">Booking happens in the provider's own app. SakayPinoy never books, charges or confirms a ride for you.</p>`;

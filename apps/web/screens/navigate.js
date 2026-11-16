@@ -1,6 +1,7 @@
 // Step-by-step journey guidance. GPS progress is opt-in and stops when you leave the screen.
 import { store } from '../lib/store.js';
-import { esc, fare, dur, km, toast, $ } from '../lib/ui.js';
+import { esc, fare, dur, km, toast, modeIcon, $ } from '../lib/ui.js';
+import { community } from '../lib/community.js';
 import { getPlan, getJourney } from '../lib/journey.js';
 import { legHtml } from './route.js';
 import { createMap, drawRoute, fit, pin } from '../lib/map.js';
@@ -26,7 +27,11 @@ export default function navigate(el, { params, go }) {
     <div class="pad stack">
       ${cur ? `<div class="steps-now" aria-live="polite"><div class="small">Step ${step + 1} of ${o.legs.length}</div><div class="big">${esc(cur.instruction)}</div>
         ${o.legs[step + 1] ? `<div class="small" style="margin-top:6px;opacity:.9">Next: ${esc(o.legs[step + 1].instruction)}</div>` : '<div class="small" style="margin-top:6px">Next: arrive at your destination</div>'}</div>`
-        : `<div class="steps-now"><div class="big">🎉 You've arrived at ${esc(j.destination.name)}!</div></div>`}
+        : `<div class="steps-now"><div class="big">🎉 You've arrived at ${esc(j.destination.name)}!</div></div>
+           ${o.legs.some((l) => l.communityDriven && l.type === 'ride') ? `<div class="card stack"><h2>Help the next rider 🙌</h2><p class="muted small">Jeep, tricycle, taxi and ride-hailing info comes from riders like you.</p>
+             ${o.legs.filter((l) => l.communityDriven && l.type === 'ride').map((l) => `<a class="btn soft block" href="#/contribute/fare?${l.lineId ? 'lineId=' + esc(l.lineId) : 'modeId=' + esc(l.modeId)}${l.providers?.[0] ? '&providerId=' + esc(l.providers[0]) : ''}&distanceKm=${l.distanceKm.toFixed(1)}">${modeIcon(l.modeId)} How much did you pay for the ${esc(l.lineCode || l.modeLabel)}? <b>+5</b></a>`).join('')}
+             ${o.legs.filter((l) => l.lineId && l.communityDriven).map((l) => `<div class="row between"><span class="small">Was the ${esc(l.lineCode)} route accurate?</span><span class="row"><button class="btn sm soft" data-check="${esc(l.lineId)}|yes">👍</button><button class="btn sm ghost" data-check="${esc(l.lineId)}|no">👎</button></span></div>`).join('')}
+           </div>` : ''}`}
       <div class="stats"><div class="stat"><span class="muted small">Remaining time</span><b>${cur ? esc(dur(remTime)) : '0 min'}</b></div><div class="stat"><span class="muted small">Remaining fare</span><b>${cur ? esc(fare(remFare)) : '₱0'}</b></div><div class="stat"><span class="muted small">Remaining distance</span><b>${esc(km(remKm))}</b></div><div class="stat"><span class="muted small">GPS progress</span><b>${watch ? 'On' : 'Off'}</b></div></div>
       <div class="row">${step > 0 ? '<button class="btn ghost" data-prev>← Back</button>' : ''}${cur ? `<button class="btn grow" data-done>✓ ${step === o.legs.length - 1 ? 'Arrived' : 'Done – next step'}</button>` : '<a class="btn grow" href="#/commute">Log my fare</a>'}</div>
       <div id="m" class="map"></div>
@@ -41,7 +46,13 @@ export default function navigate(el, { params, go }) {
     }
   };
 
-  el.addEventListener('click', (e) => {
+  el.addEventListener('click', async (e) => {
+    const chk = e.target.closest('[data-check]');
+    if (chk) {
+      const [lineId, ans] = chk.dataset.check.split('|');
+      chk.parentElement.querySelectorAll('[data-check]').forEach((b) => (b.disabled = true));
+      try { const r = await community.confirm('line:' + lineId, { agree: ans === 'yes', ...(me || {}) }); toast(r.queued ? 'Saved – will send when online' : `Salamat! +${r.pointsEarned} pt`, 'success'); } catch (err) { toast(err.message, 'error'); }
+    }
     if (e.target.closest('[data-exit]')) history.back();
     if (e.target.closest('[data-done]')) { step++; draw(); }
     if (e.target.closest('[data-prev]')) { step = Math.max(0, step - 1); draw(); }

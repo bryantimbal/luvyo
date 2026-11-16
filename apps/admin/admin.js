@@ -35,7 +35,7 @@ const COLS = {
   cities: { title: 'Cities (coverage)', perm: 'write:data', cols: [['name', 'Name'], ['region', 'Region'], ['active', 'Active', (v) => (v ? '✓' : '—')]], template: { id: '', name: '', region: '', active: false } },
 };
 
-const NAV = [['dashboard', '📊 Dashboard'], ['lines', '🚙 Routes'], ['stops', '🚏 Stops'], ['fareSchedules', '₱ Fares'], ['operators', '🏢 Operators'], ['providers', '🏍️ Providers'], ['tricycleZones', '🛺 Tricycle zones'], ['places', '📌 Places'], ['advisories', '⚠️ Advisories'], ['cities', '🗺️ Cities'], ['reports', '🚩 Moderation'], ['import', '⬆️ Import'], ['fareHistory', '🕘 Fare history'], ['audit', '📜 Audit log']];
+const NAV = [['dashboard', '📊 Dashboard'], ['lines', '🚙 Routes'], ['stops', '🚏 Stops'], ['fareSchedules', '₱ Fares'], ['operators', '🏢 Operators'], ['providers', '🏍️ Providers'], ['tricycleZones', '🛺 Tricycle zones'], ['places', '📌 Places'], ['advisories', '⚠️ Advisories'], ['cities', '🗺️ Cities'], ['community', '👥 Community queue'], ['contributors', '🏅 Contributors'], ['reports', '🚩 Issue reports'], ['import', '⬆️ Import'], ['fareHistory', '🕘 Fare history'], ['audit', '📜 Audit log']];
 
 function shell(active, body) {
   app.innerHTML = `<div class="layout"><aside><div class="brand"><img src="/icons/icon.svg" alt="">SakayPinoy Admin</div>
@@ -54,6 +54,9 @@ async function dashboard() {
       <div class="card"><span class="muted">Fare estimates</span><b>${a.fareRequests}</b></div>
       <div class="card"><span class="muted">Pending reports</span><b>${a.pendingReports}</b></div>
       <div class="card"><span class="muted">Unverified routes</span><b>${a.unverifiedLines}</b></div>
+      <div class="card"><span class="muted">Contributors</span><b>${a.community?.contributors ?? 0}</b></div>
+      <div class="card"><span class="muted">Rider-verified reports</span><b>${a.community?.verified ?? 0}</b></div>
+      <div class="card"><span class="muted">Disputed reports</span><b>${a.community?.disputed ?? 0}</b><span class="small muted">see Community queue</span></div>
       <div class="card"><span class="muted">Dev-data records</span><b>${a.devRecords}</b><span class="small muted">replace before launch</span></div>
     </div>
     <p class="muted small">${esc(a.users.note)}</p>
@@ -142,6 +145,35 @@ function importer() {
   };
 }
 
+const STATUS = { disputed: '⚖️ disputed', needs_reconfirmation: '🔁 needs re-check', pending: '⏳ pending', community_verified: '✅ rider-verified', rejected: '✖️ rejected' };
+async function communityQueue() {
+  const rows = await call('/community/contributions');
+  shell('community', `<h1>Community queue (${rows.length})</h1>
+    <p class="small muted">Riders verify each other's reports (reputation-weighted, time-decayed). Step in for <b>disputed</b> items and abuse. Overriding sets the outcome and pays out or deducts reputation; choose “let riders decide” to undo.</p>
+    <table><thead><tr><th>Status</th><th>Report</th><th>Votes</th><th>Contributor</th><th>When</th><th>Moderate</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td><span class="badge ${r.status === 'disputed' ? 'warn' : ''}">${STATUS[r.status] || esc(r.status)}</span>${r.moderation ? `<div class="small muted">by ${esc(r.moderation.by)}</div>` : ''}</td>
+      <td>${esc(r.question)}<div class="small muted">${esc(r.type)} · ${esc(r.modeId)}${r.lineId ? ' · ' + esc(r.lineId) : ''}${r.payload?.points ? ' · ' + esc(r.payload.points) : ''}</div></td>
+      <td>👍 ${r.agreeing} (${r.agreeW}) · 👎 ${r.disagreeing} (${r.disagreeW})<div class="small muted">score ${r.score}</div></td>
+      <td>${esc(r.contributor?.name || '?')}<div class="small muted">rep ${r.contributor?.reputation ?? 0} · ×${(r.contributor?.weight ?? 0).toFixed(2)}${r.contributor?.suspended ? ' · suspended' : ''}</div></td>
+      <td class="small">${esc(new Date(r.createdAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }))}</td>
+      <td>${can('moderate') ? `<select data-mod="${esc(r.id)}"><option value="">Let riders decide</option><option value="community_verified" ${r.moderation?.status === 'community_verified' ? 'selected' : ''}>Verify</option><option value="rejected" ${r.moderation?.status === 'rejected' ? 'selected' : ''}>Reject</option></select>` : ''}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">No community reports yet.</td></tr>'}
+    </tbody></table>`);
+  app.querySelectorAll('[data-mod]').forEach((s) => (s.onchange = async () => {
+    try { await call(`/community/contributions/${encodeURIComponent(s.dataset.mod)}/moderate`, { method: 'POST', body: { status: s.value || null } }); communityQueue(); } catch (e) { alert(e.message); }
+  }));
+}
+
+async function contributors() {
+  const rows = await call('/community/contributors');
+  shell('contributors', `<h1>Contributors (${rows.length})</h1>
+    <table><thead><tr><th>Name</th><th>Level</th><th>Points</th><th>Reputation</th><th>Vote weight</th><th>Reports</th><th></th></tr></thead><tbody>
+    ${rows.map((c) => `<tr><td>${esc(c.displayName)}<div class="small muted">${esc(c.id.slice(0, 12))}…</div></td><td>${esc(c.level)}</td><td>${c.points || 0}</td><td>${c.reputation || 0}</td><td>×${c.weight.toFixed(2)}</td><td>${c.submitted}</td>
+      <td class="row">${can('moderate') ? `<button class="btn sm ${c.suspended ? '' : 'warn'}" data-susp="${esc(c.id)}|${c.suspended ? 0 : 1}">${c.suspended ? 'Reinstate' : 'Suspend'}</button><button class="btn sm ghost" data-rep="${esc(c.id)}|-20">−20 rep</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">No contributors yet.</td></tr>'}
+    </tbody></table>`);
+  app.querySelectorAll('[data-susp]').forEach((b) => (b.onclick = async () => { const [id, v] = b.dataset.susp.split('|'); await call(`/community/contributors/${encodeURIComponent(id)}`, { method: 'POST', body: { suspended: v === '1' } }); contributors(); }));
+  app.querySelectorAll('[data-rep]').forEach((b) => (b.onclick = async () => { const [id, v] = b.dataset.rep.split('|'); await call(`/community/contributors/${encodeURIComponent(id)}`, { method: 'POST', body: { reputationDelta: +v } }); contributors(); }));
+}
+
 async function logView(kind) {
   const rows = await call(kind === 'audit' ? '/audit' : '/fare-history');
   shell(kind, `<h1>${kind === 'audit' ? 'Audit log' : 'Fare history'}</h1><table><thead><tr><th>When</th>${kind === 'audit' ? '<th>Actor</th><th>Action</th><th>Entity</th>' : '<th>Schedule</th><th>Changed by</th>'}<th>Before</th></tr></thead><tbody>
@@ -155,6 +187,8 @@ async function route() {
   try {
     if (k === 'dashboard') await dashboard();
     else if (k === 'reports') await reports();
+    else if (k === 'community') await communityQueue();
+    else if (k === 'contributors') await contributors();
     else if (k === 'import') importer();
     else if (k === 'audit' || k === 'fareHistory') await logView(k);
     else if (COLS[k]) await collection(k);

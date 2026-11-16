@@ -10,7 +10,9 @@ export default function explore(el) {
     ['#/fare', '🧮', t('fareCalc'), 'Estimate any trip, single or mixed'],
     ['#/advisories', '⚠️', 'Service advisories', 'Closures, disruptions, weather'],
     ['#/assistant', '💬', 'Commute assistant', 'Ask in English, Filipino or Taglish'],
-    ['#/report', '🚩', 'Report an issue', 'Help keep routes and fares accurate'],
+    ['#/ambag', '🙌', 'Ambag – contribute', 'Report fares, waits, routes; verify others'],
+    ['#/leaderboard', '🏆', 'Top contributors', 'This week’s most helpful riders'],
+    ['#/report', '🚩', 'Report an issue', 'Road closures, disruptions and other problems'],
   ];
   el.innerHTML = `${header(t('explore'), { back: false })}<ul class="list pad">${items.map(([h, i, n, d]) => `<li><a href="${h}"><span class="ic">${i}</span><span class="grow"><b>${n}</b><div class="muted small">${d}</div></span><span class="muted">›</span></a></li>`).join('')}</ul>`;
 }

@@ -16,6 +16,12 @@ export const km = (v) => (v == null ? '—' : v < 1 ? `${Math.round(v * 1000)} m
 export const peso = (v) => '₱' + (+v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const dateStr = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }) : 'Not verified');
 
+export function riderBadge(c) {
+  if (!c?.riders) return '';
+  const ago = c.lastConfirmedAt ? Math.max(0, Math.round((Date.now() - new Date(c.lastConfirmedAt)) / 86400000)) : null;
+  return `<span class="badge src-community_verified" title="Confirmed by riders">👥 ${c.riders} rider${c.riders === 1 ? '' : 's'}${ago != null ? ` · ${ago === 0 ? 'today' : ago + 'd ago'}` : ''}</span>`;
+}
+
 export function sourceBadge(type, { dataset, lastVerified } = {}) {
   const s = SOURCE_TYPES[type] || SOURCE_TYPES.indicative;
   const dev = dataset === 'development' ? '<span class="badge badge-dev" title="Development dataset – verify before travel">DEV DATA</span>' : '';
@@ -76,7 +82,13 @@ export function routeCard(o, i) {
       <span>🔁 ${o.transfers} transfer${o.transfers === 1 ? '' : 's'}</span><span>🚶 ${esc(km(o.walkKm))}</span><span>📏 ${esc(km(o.distanceKm))}</span>
       ${o.wait.max ? `<span>⏳ wait ${Math.round(o.wait.min)}–${Math.round(o.wait.max)} min</span>` : ''}
     </div>
-    <div class="route-src">${sourceBadge(o.sourceType, { dataset: o.legs.some((l) => l.dataset === 'development') ? 'development' : null, lastVerified: o.lastVerified })}
+    <div class="route-src">${sourceBadge(o.sourceType, { dataset: o.legs.some((l) => l.dataset === 'development') ? 'development' : null, lastVerified: o.lastVerified })}${o.legs.map((l) => riderBadge(l.community)).join('')}
       <span class="muted small">Last verified: ${esc(dateStr(o.lastVerified))}</span></div>
   </a>`;
+}
+
+/** Segmented sub-navigation for the My Routes hub (Saved · History · Expenses). */
+export function myNav(active) {
+  const tabs = [['myroutes', '⭐ Saved'], ['history', '🕘 History'], ['commute', '💰 Expenses']];
+  return `<div class="chips pad" style="padding-bottom:0" role="tablist">${tabs.map(([k, l]) => `<a class="chip" role="tab" href="#/${k}" aria-pressed="${k === active}">${l}</a>`).join('')}</div>`;
 }

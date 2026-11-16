@@ -25,6 +25,14 @@ Legend: ✅ implemented and tested · 🟡 implemented with limits noted · ⏳ 
 - ✅ Service advisories with expiry, community reporting with photos and GPS
 - ✅ Offline: cached dataset, offline routing, labelled cached results, last-sync time
 
+## Community data (Ambag) – see COMMUNITY.md
+- ✅ Board / alight anywhere ("Para!") routing for jeepney, UV and tricycle
+- ✅ Contributions, peer verification, reputation weighting, decay, disputes, moderation, suspension
+- ✅ Points, levels, badges, leaderboard; offline outbox; GPS ride recorder with on-device privacy trim
+- ✅ Verified data feeds fares, waits, new routes and warnings; never overrides official data
+- ⏳ Merging several traces into one consensus path (today the latest verified trace wins)
+- ⏳ Partner rewards (load credits)
+
 ## Phase 3 – Intelligence
 - 🟡 AI assistant: grounded rule-based NLU (EN/FIL/Taglish) over the engines. LLM layer not yet added
 - ✅ Expense analytics, savings vs cheapest option, budgets

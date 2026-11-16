@@ -12,7 +12,8 @@ const SEED = join(root, 'data', 'dev', 'dataset.json');
 const RUNTIME = process.env.SAKAY_DATA_FILE || join(root, 'data', 'runtime', 'dataset.json');
 
 export const COLLECTIONS = ['cities', 'modes', 'operators', 'stops', 'lines', 'fareSchedules', 'providers', 'tricycleZones', 'places', 'advisories', 'reports'];
-const PUBLIC_EXCLUDE = new Set(['reports', 'auditLog', 'analytics', 'fareHistory']);
+const PUBLIC_EXCLUDE = new Set(['reports', 'auditLog', 'analytics', 'fareHistory', 'contributions', 'confirmations', 'contributors', 'pointsEvents', 'reputation']);
+const COMMUNITY_ARRAYS = ['contributions', 'confirmations', 'contributors', 'pointsEvents'];
 
 export class JsonRepository {
   constructor(file = RUNTIME) {
@@ -26,6 +27,7 @@ export class JsonRepository {
   }
   load() {
     this.ds = JSON.parse(readFileSync(this.file, 'utf8'));
+    for (const k of COMMUNITY_ARRAYS) this.ds[k] ??= [];
     this.version = Date.now();
   }
   /** Bump version so routing graph caches (keyed by object identity) rebuild. */
@@ -40,10 +42,11 @@ export class JsonRepository {
     writeFileSync(this.file, JSON.stringify(this.ds, null, 1));
   }
   dataset() { return this.ds; }
-  publicDataset() {
+  /** Public subset of the engine dataset (raw + verified community data); no personal data. */
+  publicDataset(engine = this.ds) {
     const out = {};
-    for (const [k, v] of Object.entries(this.ds)) if (!PUBLIC_EXCLUDE.has(k)) out[k] = v;
-    out.advisories = activeAdvisories(this.ds);
+    for (const [k, v] of Object.entries(engine)) if (!PUBLIC_EXCLUDE.has(k)) out[k] = v;
+    out.advisories = activeAdvisories(engine);
     out.version = this.version;
     return out;
   }

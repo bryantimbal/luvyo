@@ -24,7 +24,7 @@ export function manilaDay(date) {
 export function timeBand(profiles, date) {
   const m = manilaMinutes(date);
   for (const b of profiles.bands) {
-    const [s, e] = [hm(b.start), hm(b.end)];
+    const s = (b._s ??= hm(b.start)), e = (b._e ??= hm(b.end));
     if (s <= e ? m >= s && m < e : m >= s || m < e) return b.id;
   }
   return 'offpeak';
@@ -64,6 +64,7 @@ export function rideMinutes(profiles, modeId, distanceKm, date, nStops = 0) {
 }
 
 export function waitMinutes(profiles, modeId, line) {
+  if (line?.communityWait) return { min: line.communityWait.min, max: line.communityWait.max, known: true, source: 'community' };
   const p = profiles.modes[modeId];
   const hw = line?.headwayMin ?? p?.headwayMin;
   if (!hw) return { min: 0, max: 0, known: false };
