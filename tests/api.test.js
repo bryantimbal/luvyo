@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const dir = mkdtempSync(join(tmpdir(), 'sakay-'));
+const dir = mkdtempSync(join(tmpdir(), 'luvyo-'));
 process.env.SAKAY_DATA_FILE = join(dir, 'dataset.json');
 process.env.ADMIN_TOKENS = 'tok-super:superadmin:Super,tok-mod:moderator:Mod,tok-view:viewer:View';
 const { server, repo } = await import('../server/index.js');

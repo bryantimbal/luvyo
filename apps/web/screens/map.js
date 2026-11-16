@@ -1,13 +1,13 @@
 /* global L */
 import { api, cachedDataset, syncDataset } from '../lib/api.js';
-import { header, esc, toast, km, modeIcon, sheet } from '../lib/ui.js';
+import { header, esc, toast, km, modeIcon, sheet, MODE_LABEL } from '../lib/ui.js';
 import { createMap, stopMarker, pin, modeColor } from '../lib/map.js';
 import { currentPosition, lastKnown } from '../lib/location.js';
 import { setJourney } from '../lib/journey.js';
 
 export default async function mapScreen(el, { go }) {
   el.innerHTML = `${header('Transport map', { right: '<button class="icon-btn" data-locate aria-label="Locate me">📍</button>' })}
-    <div class="chips pad" style="padding-bottom:0" id="filters">${['all', 'rail', 'bus', 'jeepney', 'uv', 'tricycle'].map((m) => `<button class="chip" data-f="${m}" aria-pressed="${m === 'all'}">${m === 'all' ? 'All' : modeIcon(m) + ' ' + m}</button>`).join('')}<button class="chip" data-lines aria-pressed="false">Show routes</button></div>
+    <div class="chips pad" style="padding-bottom:0" id="filters">${['all', 'rail', 'bus', 'jeepney', 'uv', 'tricycle'].map((m) => `<button class="chip" data-f="${m}" aria-pressed="${m === 'all'}">${m === 'all' ? 'All' : modeIcon(m) + ' ' + MODE_LABEL[m]}</button>`).join('')}<button class="chip" data-lines aria-pressed="false">Show routes</button></div>
     <div id="m" class="map tall" style="margin-top:8px"></div>`;
   const map = createMap(el.querySelector('#m'), { zoom: 12 });
   if (!map) return;
@@ -64,7 +64,7 @@ export default async function mapScreen(el, { go }) {
         const p = await currentPosition();
         pin(map, p, 'You are here', 'pick'); map.setView([p.lat, p.lng], 15);
         const near = await api.nearby(p, 1);
-        toast(near.length ? `${near.length} stop(s) within 1 km. Nearest: ${near[0].name} (${km(near[0].km)})` : 'No stops in SakayPinoy data within 1 km yet.');
+        toast(near.length ? `${near.length} stop(s) within 1 km. Nearest: ${near[0].name} (${km(near[0].km)})` : 'No stops in LUVYO data within 1 km yet.');
       } catch (err) { toast(err.message, 'error'); }
     }
   });

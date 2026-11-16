@@ -1,8 +1,10 @@
-# SakayPinoy – Commute Companion
+# LUVYO – Philippine Mobility App
+
+**LUVYO** for short.
 
 **One destination. Multiple ways to get there. Know the cost before you go.**
 
-SakayPinoy compares jeepney, bus, MRT/LRT, UV Express, tricycle, motorcycle taxi, taxi and
+LUVYO compares jeepney, bus, MRT/LRT, UV Express, tricycle, motorcycle taxi, taxi and
 ride-hailing options for a trip in the Philippines. For each option it shows the **estimated total fare
 (₱)** and **estimated travel time**, and labels where each number comes from.
 
@@ -77,6 +79,15 @@ docs/            Architecture, data verification, Play Store, notifications, roa
   official app or site.
 - **Community reports never become official automatically.**
 - **Sponsored content cannot affect rankings.** `rankOptions` has no input for it.
+
+## Languages
+
+English is the default. Users can switch to **Filipino** on the first onboarding screen, in Settings
+or in Profile, and the change applies instantly and persists. Translations live in one place
+(`apps/web/lib/i18n.js`): exact UI phrases, plus patterns for dynamic text (counts, times,
+step-by-step directions, verification questions). They're applied to every screen, sheet and toast as it
+renders. Place names, route signboards, provider names and what users write are never translated.
+To add a phrase, add its English text and Filipino translation to `PHRASES`.
 
 ## Community data (Ambag)
 

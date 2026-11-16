@@ -48,7 +48,7 @@ export default function pick(el, { params, query, go }) {
         results = await api.places(v);
         $('#res', el).innerHTML = results.length
           ? results.map((p, i) => `<li><button data-res="${i}"><span class="ic">${p.type === 'station' ? '🚆' : '📌'}</span><span class="grow"><b>${esc(p.name)}</b><div class="muted small">${esc(p.type)}${p.dataset === 'development' ? ' · dev data' : ''}</div></span></button></li>`).join('')
-          : `<li class="item muted">No match in SakayPinoy's place list. Try a nearby landmark or choose on the map.</li>`;
+          : `<li class="item muted">No match in LUVYO's place list. Try a nearby landmark or choose on the map.</li>`;
       } catch (e) { toast(e.message, 'error'); }
     }, 180);
   });

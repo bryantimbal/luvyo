@@ -1,6 +1,7 @@
 import { store } from '../lib/store.js';
 import { syncDataset, cachedDataset } from '../lib/api.js';
 import { header, esc, toast } from '../lib/ui.js';
+import { languageSwitch } from '../lib/i18n.js';
 
 export default function settings(el, { refresh }) {
   const s = store.get();
@@ -8,6 +9,8 @@ export default function settings(el, { refresh }) {
   const np = s.notifPrefs;
   el.innerHTML = `${header('Settings')}
   <div class="pad stack">
+    <section class="card"><div class="row between"><h2 style="margin:0">Language / Wika</h2>${languageSwitch()}</div>
+      <p class="muted small">English is the default. Place names, route signboards and rider reports stay as written.</p></section>
     <section class="card"><h2>Notifications</h2>
       ${[['advisories', 'Service advisories & interruptions'], ['savedRoutes', 'Saved-route updates'], ['departure', 'Departure & commute reminders'], ['reports', 'Community report status']].map(([k, l]) => `<label class="toggle"><span>${l}</span><input type="checkbox" data-np="${k}" ${np[k] ? 'checked' : ''}></label>`).join('')}
       <p class="muted small">Device permission: <b>${'Notification' in window ? Notification.permission : 'unsupported'}</b>. ${'Notification' in window && Notification.permission === 'default' ? '<button class="btn sm soft" data-perm>Allow</button>' : ''}</p>
@@ -28,7 +31,7 @@ export default function settings(el, { refresh }) {
       <div class="row"><button class="btn sm" data-sync>Sync now</button><button class="btn sm ghost" data-clear>Clear cache</button></div>
       <p class="muted small">Cached data is used only when you're offline and is always labelled as cached.</p>
     </section>
-    <section class="card"><h2>About</h2><p class="small">SakayPinoy compares transport options using official, operator, administrator-verified, community and indicative data – each labelled. <a href="#/privacy">Privacy & Terms</a> · <a href="/admin/" target="_blank" rel="noopener">Admin portal</a></p></section>
+    <section class="card"><h2>About</h2><p class="small">LUVYO compares transport options using official, operator, administrator-verified, community and indicative data – each labelled. <a href="#/privacy">Privacy & Terms</a> · <a href="/admin/" target="_blank" rel="noopener">Admin portal</a></p></section>
   </div>`;
 
   el.addEventListener('change', (e) => {
@@ -42,7 +45,7 @@ export default function settings(el, { refresh }) {
     if (e.target.closest('[data-perm]')) { await Notification.requestPermission(); refresh(); }
     if (e.target.closest('[data-sync]')) { try { await syncDataset(true); toast('Transport data synced', 'success'); refresh(); } catch { toast('Sync failed – you seem to be offline', 'error'); } }
     if (e.target.closest('[data-clear]')) {
-      localStorage.removeItem('sakaypinoy:dataset');
+      localStorage.removeItem('luvyo:dataset');
       if ('caches' in window) for (const k of await caches.keys()) await caches.delete(k);
       store.set({ lastSync: null }); toast('Cache cleared'); location.reload();
     }

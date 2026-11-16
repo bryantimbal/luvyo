@@ -1,11 +1,11 @@
-// SakayPinoy admin portal. Talks only to /api/admin/* with a role-scoped bearer token.
+// LUVYO admin portal. Talks only to /api/admin/* with a role-scoped bearer token.
 // Every change is audit-logged server-side; fare edits also go to fare history.
 import { SOURCE_TYPES } from '/core/trust.js';
 
 const app = document.getElementById('app');
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
-let token = sessionStorage.getItem('sp-admin-token') || '';
+let token = sessionStorage.getItem('luvyo-admin-token') || '';
 let me = null;
 
 async function call(path, opts = {}) {
@@ -38,10 +38,10 @@ const COLS = {
 const NAV = [['dashboard', '📊 Dashboard'], ['lines', '🚙 Routes'], ['stops', '🚏 Stops'], ['fareSchedules', '₱ Fares'], ['operators', '🏢 Operators'], ['providers', '🏍️ Providers'], ['tricycleZones', '🛺 Tricycle zones'], ['places', '📌 Places'], ['advisories', '⚠️ Advisories'], ['cities', '🗺️ Cities'], ['community', '👥 Community queue'], ['contributors', '🏅 Contributors'], ['reports', '🚩 Issue reports'], ['import', '⬆️ Import'], ['fareHistory', '🕘 Fare history'], ['audit', '📜 Audit log']];
 
 function shell(active, body) {
-  app.innerHTML = `<div class="layout"><aside><div class="brand"><img src="/icons/icon.svg" alt="">SakayPinoy Admin</div>
+  app.innerHTML = `<div class="layout"><aside><div class="brand"><img src="/icons/icon.svg" alt="">LUVYO Admin</div>
     ${NAV.map(([k, l]) => `<a href="#${k}" class="${k === active ? 'on' : ''}">${l}</a>`).join('')}
     <div class="who">${esc(me.name)} · ${esc(me.role)}<br><a href="#" id="logout" style="padding:4px 0">Sign out</a></div></aside><main>${body}</main></div>`;
-  document.getElementById('logout').onclick = (e) => { e.preventDefault(); sessionStorage.removeItem('sp-admin-token'); token = ''; boot(); };
+  document.getElementById('logout').onclick = (e) => { e.preventDefault(); sessionStorage.removeItem('luvyo-admin-token'); token = ''; boot(); };
 }
 
 async function dashboard() {
@@ -200,12 +200,12 @@ async function boot() {
   if (token) {
     try { me = await call('/me'); addEventListener('hashchange', route); return route(); } catch { token = ''; }
   }
-  app.innerHTML = `<div class="login"><form class="card" id="f"><h2 style="margin:0">SakayPinoy Admin</h2><p class="small muted">Sign in with your admin access token.</p>
+  app.innerHTML = `<div class="login"><form class="card" id="f"><h2 style="margin:0">LUVYO Admin</h2><p class="small muted">Sign in with your admin access token.</p>
     <input id="t" type="password" placeholder="Admin token" autocomplete="current-password" required><button class="btn">Sign in</button><p class="err" id="err"></p></form></div>`;
   document.getElementById('f').onsubmit = async (e) => {
     e.preventDefault();
     token = document.getElementById('t').value.trim();
-    try { me = await call('/me'); sessionStorage.setItem('sp-admin-token', token); addEventListener('hashchange', route); route(); }
+    try { me = await call('/me'); sessionStorage.setItem('luvyo-admin-token', token); addEventListener('hashchange', route); route(); }
     catch (err) { document.getElementById('err').textContent = err.message; token = ''; }
   };
 }

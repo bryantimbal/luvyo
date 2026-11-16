@@ -1,4 +1,4 @@
--- SakayPinoy production schema (Supabase / PostgreSQL 15 + PostGIS).
+-- LUVYO production schema (Supabase / PostgreSQL 15 + PostGIS).
 -- Mirrors the JSON development repository in server/repo.js.
 -- Conventions: UUID PKs, timestamptz, every transport fact carries
 -- source_type + data_source_id + last_verified_at (spec §30).

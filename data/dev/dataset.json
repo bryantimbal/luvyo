@@ -1,6 +1,6 @@
 {
  "meta": {
-  "name": "SakayPinoy development dataset",
+  "name": "LUVYO development dataset",
   "dataset": "development",
   "version": 1,
   "generatedAt": "2026-11-16T18:39:49.488Z",
@@ -3117,8 +3117,8 @@
   {
    "id": "adv-sample-1",
    "title": "Sample advisory: data verification in progress",
-   "body": "SakayPinoy is running on development data. Fares, routes and schedules shown are for testing and must be verified before use.",
-   "source": "SakayPinoy (sample)",
+   "body": "LUVYO is running on development data. Fares, routes and schedules shown are for testing and must be verified before use.",
+   "source": "LUVYO (sample)",
    "sourceType": "admin_verified",
    "severity": "info",
    "area": "Metro Manila",
@@ -3134,7 +3134,7 @@
    "id": "adv-sample-expired",
    "title": "Sample expired advisory (should be hidden)",
    "body": "This sample exists to test that expired advisories are never shown as active.",
-   "source": "SakayPinoy (sample)",
+   "source": "LUVYO (sample)",
    "sourceType": "admin_verified",
    "severity": "warning",
    "area": "Metro Manila",

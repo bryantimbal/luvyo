@@ -26,7 +26,7 @@ export default async function ridehail(el, { go }) {
         <a class="small" href="#/contribute/fare?providerId=${esc(r.provider.id)}&distanceKm=${r.distanceKm.toFixed(1)}">₱ Took this ride? Report what you actually paid (+5)</a>
         <div class="row" style="margin-top:10px"><a class="btn sm grow" href="${esc(r.provider.storeUrl || r.provider.website)}" target="_blank" rel="noopener" data-open="${esc(r.provider.id)}">Open ${esc(r.provider.name)}</a>${r.provider.website ? `<a class="btn sm ghost" href="${esc(r.provider.website)}" target="_blank" rel="noopener" data-open="${esc(r.provider.id)}">Website</a>` : ''}</div>
       </div>`).join('')}
-      <p class="muted small">Booking happens in the provider's own app. SakayPinoy never books, charges or confirms a ride for you.</p>`;
+      <p class="muted small">Booking happens in the provider's own app. LUVYO never books, charges or confirms a ride for you.</p>`;
   } catch (e) { $('#out', el).innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
   el.addEventListener('click', (e) => { const o = e.target.closest('[data-open]'); if (o) api.providerOpened(o.dataset.open); });
 }

@@ -3,7 +3,7 @@
 import { store } from './store.js';
 
 let cfg = { supabaseUrl: null, supabaseAnonKey: null };
-const SKEY = 'sakaypinoy:session';
+const SKEY = 'luvyo:session';
 
 export const auth = {
   configure(c) { cfg = c || cfg; this._captureRedirect(); },
@@ -11,7 +11,7 @@ export const auth = {
   session() { try { return JSON.parse(localStorage.getItem(SKEY)); } catch { return null; } },
   user() { return this.session()?.user ?? null; },
   async _req(path, body, token) {
-    if (!this.enabled) throw new Error('Accounts are not configured on this server yet. You can keep using SakayPinoy as a guest.');
+    if (!this.enabled) throw new Error('Accounts are not configured on this server yet. You can keep using LUVYO as a guest.');
     const res = await fetch(cfg.supabaseUrl + path, {
       method: body ? 'POST' : 'GET',
       headers: { apikey: cfg.supabaseAnonKey, 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },

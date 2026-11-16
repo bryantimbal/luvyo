@@ -4,7 +4,7 @@ import { store } from './store.js';
 import { auth } from './auth.js';
 import { toast } from './ui.js';
 
-const OUTBOX = 'sakaypinoy:outbox';
+const OUTBOX = 'luvyo:outbox';
 
 function headers() {
   const h = { 'Content-Type': 'application/json', 'X-Contributor-Id': store.get().deviceId };

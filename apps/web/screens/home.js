@@ -49,7 +49,7 @@ export default async function home(el, { go, refresh }) {
   el.innerHTML = `
   <section class="hero">
     <div class="row between">
-      <div class="brand"><img src="/icons/icon.svg" alt="">SakayPinoy</div>
+      <div class="brand"><img src="/icons/icon.svg" alt="">LUVYO</div>
       <div class="row"><a class="icon-btn" href="#/notifications" aria-label="Notifications (${unread} unread)">🔔${unread ? `<span class="dot">${unread}</span>` : ''}</a><a class="icon-btn" href="#/profile" aria-label="Profile">👤</a></div>
     </div>
     <div class="greet">${name ? `Hi ${esc(name)}! ` : ''}${t('greeting')}</div>
@@ -58,7 +58,7 @@ export default async function home(el, { go, refresh }) {
   <section class="card search-card">${journeyForm(j)}</section>
 
   <section class="section"><div class="qa">
-    <a href="#/assistant"><span>💬</span><span>Ask SakayPinoy</span></a>
+    <a href="#/assistant"><span>💬</span><span>Ask LUVYO</span></a>
     <a href="#/map"><span>📍</span><span>${t('nearby')}</span></a>
     <a href="#/fare"><span>🧮</span><span>${t('fareCalc')}</span></a>
     <a href="#/jeepney"><span>🚙</span><span>${t('jeepFinder')}</span></a>
@@ -112,7 +112,7 @@ export default async function home(el, { go, refresh }) {
       if (!box) return;
       box.innerHTML = `<div class="section-title"><h2>${t('nearbyStops')}</h2><a href="#/map" class="small">Map</a></div>` + (stops.length
         ? `<ul class="list card">${stops.slice(0, 4).map((x) => `<li class="item"><span class="ic">${modeIcon(x.modes[0])}</span><span class="grow"><b>${esc(x.name)}</b><div class="muted small">${x.lines.map((l) => esc(l.code)).join(', ')} · ${km(x.km)}</div></span></li>`).join('')}</ul>`
-        : '<p class="muted small">No stops in SakayPinoy data within 800 m of you yet.</p>');
+        : '<p class="muted small">No stops in LUVYO data within 800 m of you yet.</p>');
     }).catch(() => {});
   }
 }

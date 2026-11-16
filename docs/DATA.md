@@ -25,7 +25,7 @@ Search the dataset for `"dataset": "development"`; the admin dashboard counts th
 1. `official` – published by a government agency or operator (fare order, matrix, timetable)
 2. `live_quote` – returned by an authorised provider API at request time
 3. `operator` – supplied directly by a verified operator
-4. `admin_verified` – checked by a SakayPinoy administrator (field survey and similar)
+4. `admin_verified` – checked by a LUVYO administrator (field survey and similar)
 5. `community` – user-submitted, unverified
 6. `indicative` – model-based estimate
 

@@ -1,7 +1,7 @@
 // Service worker: app shell precache, network-first API with cached fallback,
 // bounded map-tile cache. Cached API responses are only served offline, and the
 // app labels them as cached.
-const VERSION = 'sp-v2';
+const VERSION = 'luvyo-v1';
 const SHELL = [
   '/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png',
   '/vendor/leaflet/leaflet.js', '/vendor/leaflet/leaflet.css',
@@ -50,7 +50,7 @@ self.addEventListener('fetch', (e) => {
 // FCM / Web Push payloads: { title, body, link }
 self.addEventListener('push', (e) => {
   const d = e.data?.json?.() ?? {};
-  e.waitUntil(self.registration.showNotification(d.title || 'SakayPinoy', { body: d.body || '', icon: '/icons/icon-192.png', data: { link: d.link || '/#/notifications' } }));
+  e.waitUntil(self.registration.showNotification(d.title || 'LUVYO', { body: d.body || '', icon: '/icons/icon-192.png', data: { link: d.link || '/#/notifications' } }));
 });
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();

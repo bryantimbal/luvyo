@@ -1,7 +1,7 @@
 # Google Play preparation
 
 ## Packaging
-SakayPinoy is a PWA. Ship it to Play as a **Trusted Web Activity** using Bubblewrap:
+LUVYO is a PWA. Ship it to Play as a **Trusted Web Activity** using Bubblewrap:
 
 ```bash
 npx @bubblewrap/cli init --manifest https://<your-domain>/manifest.webmanifest
@@ -11,7 +11,7 @@ npx @bubblewrap/cli init --manifest https://<your-domain>/manifest.webmanifest
 npx @bubblewrap/cli build
 ```
 
-- Suggested package ID: `ph.sakaypinoy.app`. Confirm the domain is yours before choosing it.
+- Suggested package ID: `ph.luvyo.app`. Confirm the domain is yours before choosing it.
 - Host `/.well-known/assetlinks.json` with the app signing key fingerprint.
 - Target the current API level that Play requires.
 
@@ -23,12 +23,13 @@ npx @bubblewrap/cli build
 | Phone, 7" and 10" screenshots | Capture from production data (don't publish DEV DATA screenshots) |
 
 ## Listing text
-**Name:** SakayPinoy – Commute Companion
+**Name:** LUVYO – Philippine Mobility App (launcher name: LUVYO)
+**Languages:** English (default), Filipino
 **Short description (≤80):** Compare jeep, bus, MRT/LRT, tricycle & ride-hailing fares and travel times.
 **Full description:**
 > One destination. Multiple ways to get there. Know the cost before you go.
 >
-> SakayPinoy helps you plan your commute in the Philippines. Enter where you're going and compare
+> LUVYO helps you plan your commute in the Philippines. Enter where you're going and compare
 > jeepneys, buses, MRT/LRT, UV Express, tricycles, motorcycle taxis, taxis and ride-hailing.
 > Each option shows the estimated total fare, travel time, transfers and walking.
 > • Cheapest, fastest, fewest transfers and best overall picks

@@ -1,9 +1,9 @@
-// SakayPinoy PWA shell: hash router, bottom navigation, lifecycle.
+// LUVYO PWA shell: hash router, bottom navigation, lifecycle.
 import { store } from './lib/store.js';
 import { api, syncDataset } from './lib/api.js';
 import { auth } from './lib/auth.js';
 import { setTileUrl } from './lib/map.js';
-import { t } from './lib/i18n.js';
+import { t, applyLanguage, setLanguage } from './lib/i18n.js';
 import { $, esc } from './lib/ui.js';
 import { startReminderLoop } from './screens/notifications.js';
 import { community } from './lib/community.js';
@@ -59,6 +59,7 @@ async function render() {
   if (!s.onboarded && name !== 'onboarding' && name !== 'privacy') return go('#/onboarding');
   if (!routes[name]) return go('#/home');
   if (typeof cleanup === 'function') { try { cleanup(); } catch {} }
+  document.querySelectorAll('.sheet-wrap').forEach((x) => x.remove()); // sheets belong to the screen that opened them
   cleanup = null;
   renderNav(name);
   view.setAttribute('aria-busy', 'true');
@@ -88,6 +89,9 @@ function renderNav(name) {
 }
 
 document.addEventListener('click', (e) => {
+  const lb = e.target.closest('[data-lang]');
+  // onboarding redraws its own slide; elsewhere re-render the screen + nav
+  if (lb) { setLanguage(lb.dataset.lang, lb.closest('.onb') ? null : render); return; }
   if (e.target.closest('[data-back]')) { e.preventDefault(); history.length > 1 ? history.back() : go('#/home'); }
 });
 
@@ -100,6 +104,7 @@ addEventListener('offline', netBanner);
 addEventListener('hashchange', render);
 
 (async function boot() {
+  applyLanguage(); // English by default; Filipino if the user chose it
   netBanner();
   const cfg = await api.config();
   auth.configure(cfg);

@@ -1,8 +1,8 @@
 {
-  "name": "sakaypinoy",
+  "name": "luvyo",
   "version": "0.1.0",
   "private": true,
-  "description": "SakayPinoy – Commute Companion. Multimodal route, fare and travel-time planner for the Philippines.",
+  "description": "LUVYO – Philippine Mobility App. Multimodal route, fare and travel-time planner for the Philippines.",
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {

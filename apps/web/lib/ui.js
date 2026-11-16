@@ -45,7 +45,9 @@ export function sheet(html, { onMount } = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'sheet-wrap';
   wrap.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><div class="sheet-handle"></div>${html}</div>`;
-  const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 180); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const close = () => { removeEventListener('keydown', onKey); wrap.classList.add('out'); setTimeout(() => wrap.remove(), 180); };
+  addEventListener('keydown', onKey);
   wrap.addEventListener('click', (e) => { if (e.target === wrap || e.target.closest('[data-close]')) close(); });
   document.body.append(wrap);
   onMount?.(wrap.querySelector('.sheet'), close);
@@ -57,6 +59,8 @@ export function empty(icon, title, body = '', action = '') {
 }
 
 export const loading = (msg = 'Loading…') => `<div class="loading"><div class="spinner"></div><p>${esc(msg)}</p></div>`;
+
+export const MODE_LABEL = { walk: 'Walk', jeepney: 'Jeepney', bus: 'Bus', rail: 'Train', uv: 'UV Express', tricycle: 'Tricycle', ferry: 'Ferry', mc_taxi: 'Motorcycle taxi', ridehail_car: 'Ride-hailing', taxi: 'Taxi' };
 
 export function modeIcon(modeId) {
   return { walk: '🚶', jeepney: '🚙', bus: '🚌', rail: '🚆', uv: '🚐', tricycle: '🛺', ferry: '⛴️', mc_taxi: '🏍️', ridehail_car: '🚗', taxi: '🚕' }[modeId] || '•';

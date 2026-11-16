@@ -1,7 +1,7 @@
 // Local, offline-first user store. Guest data lives on the device; when a
 // Supabase session exists, lib/sync.js mirrors it to the user's rows (RLS).
 
-const KEY = 'sakaypinoy:v1';
+const KEY = 'luvyo:v1';
 const defaults = () => ({
   onboarded: false,
   deviceId: crypto.randomUUID(),
@@ -30,7 +30,7 @@ export const store = {
     listeners.forEach((f) => f(state));
   },
   on(f) { listeners.add(f); return () => listeners.delete(f); },
-  reset() { try { localStorage.removeItem(KEY); localStorage.removeItem('sakaypinoy:dataset'); sessionStorage.clear(); } catch {} state = defaults(); },
+  reset() { try { localStorage.removeItem(KEY); localStorage.removeItem('luvyo:dataset'); sessionStorage.clear(); } catch {} state = defaults(); },
 };
 
 export const FREE_SAVED_ROUTE_LIMIT = 10;

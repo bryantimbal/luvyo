@@ -2,7 +2,7 @@ import { store } from '../lib/store.js';
 import { auth } from '../lib/auth.js';
 import { api } from '../lib/api.js';
 import { header, esc, toast, $ } from '../lib/ui.js';
-import { t } from '../lib/i18n.js';
+import { t, applyLanguage } from '../lib/i18n.js';
 
 export default async function profile(el, { go, refresh }) {
   const s = store.get();
@@ -28,7 +28,7 @@ export default async function profile(el, { go, refresh }) {
       <li><button data-export><span class="ic">⬇️</span><span class="grow">Export my data (JSON)</span></button></li>
       <li><button data-delete><span class="ic">🗑️</span><span class="grow" style="color:#9a2a14">Delete my account & data</span></button></li>
     </ul>
-    <p class="muted small" style="text-align:center">SakayPinoy v0.1 · Mas Mabilis Magplano. Mas Tipid Magbiyahe.</p>
+    <p class="muted small" style="text-align:center">LUVYO v0.1 · Mas Mabilis Magplano. Mas Tipid Magbiyahe.</p>
   </div>`;
 
   api.myReports(s.deviceId).then((r) => {
@@ -39,18 +39,18 @@ export default async function profile(el, { go, refresh }) {
     e.preventDefault();
     const v = (id) => $('#' + id, el).value;
     store.set((st) => ({ profile: { ...st.profile, name: v('name').trim(), passengerType: v('pax'), language: v('lang'), budgetDaily: +v('bd') || null, budgetMonthly: +v('bm') || null } }));
-    toast('Profile saved', 'success'); refresh();
+    applyLanguage(); toast('Profile saved', 'success'); refresh();
   });
   el.addEventListener('click', async (e) => {
     if (e.target.closest('[data-out]')) { await auth.signOut(); toast('Signed out'); refresh(); }
     if (e.target.closest('[data-export]')) {
       const { deviceId, ...data } = store.get();
       const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), account: auth.user()?.email ?? null, ...data }, null, 2)], { type: 'application/json' });
-      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'sakaypinoy-my-data.json' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'luvyo-my-data.json' });
       a.click(); URL.revokeObjectURL(a.href);
     }
     if (e.target.closest('[data-delete]')) {
-      if (!confirm('Delete all your SakayPinoy data on this device' + (auth.user() ? ' and request deletion of your account' : '') + '? This cannot be undone.')) return;
+      if (!confirm('Delete all your LUVYO data on this device' + (auth.user() ? ' and request deletion of your account' : '') + '? This cannot be undone.')) return;
       if (auth.user()) {
         // Account deletion runs server-side (Supabase edge function `delete-account`, see docs) with the user's own token.
         try { await fetch('/api/account', { method: 'DELETE', headers: { Authorization: 'Bearer ' + auth.session().access_token } }); } catch {}

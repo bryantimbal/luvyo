@@ -169,8 +169,8 @@ for (const s of stops) if (s.kind === 'station') places.push({ id: 'pl-' + s.id,
 const now = new Date('2026-11-16T00:00:00+08:00');
 const day = (d) => new Date(now.getTime() + d * 86400000).toISOString();
 const advisories = [
-  { id: 'adv-sample-1', title: 'Sample advisory: data verification in progress', body: 'SakayPinoy is running on development data. Fares, routes and schedules shown are for testing and must be verified before use.', source: 'SakayPinoy (sample)', sourceType: 'admin_verified', severity: 'info', area: 'Metro Manila', modes: [], lineIds: [], publishedAt: day(-1), updatedAt: day(-1), expiresAt: day(60), ...DEV },
-  { id: 'adv-sample-expired', title: 'Sample expired advisory (should be hidden)', body: 'This sample exists to test that expired advisories are never shown as active.', source: 'SakayPinoy (sample)', sourceType: 'admin_verified', severity: 'warning', area: 'Metro Manila', modes: ['rail'], lineIds: ['mrt3'], publishedAt: day(-30), updatedAt: day(-30), expiresAt: day(-20), ...DEV },
+  { id: 'adv-sample-1', title: 'Sample advisory: data verification in progress', body: 'LUVYO is running on development data. Fares, routes and schedules shown are for testing and must be verified before use.', source: 'LUVYO (sample)', sourceType: 'admin_verified', severity: 'info', area: 'Metro Manila', modes: [], lineIds: [], publishedAt: day(-1), updatedAt: day(-1), expiresAt: day(60), ...DEV },
+  { id: 'adv-sample-expired', title: 'Sample expired advisory (should be hidden)', body: 'This sample exists to test that expired advisories are never shown as active.', source: 'LUVYO (sample)', sourceType: 'admin_verified', severity: 'warning', area: 'Metro Manila', modes: ['rail'], lineIds: ['mrt3'], publishedAt: day(-30), updatedAt: day(-30), expiresAt: day(-20), ...DEV },
 ];
 
 const timeProfiles = {
@@ -201,7 +201,7 @@ const cities = [
 ].map(([id, name, region, active]) => ({ id, name, region, active }));
 
 const ds = {
-  meta: { name: 'SakayPinoy development dataset', dataset: 'development', version: 1, generatedAt: new Date().toISOString(), warning: 'Development data – not for production. Verify every fare, route and schedule against official sources.' },
+  meta: { name: 'LUVYO development dataset', dataset: 'development', version: 1, generatedAt: new Date().toISOString(), warning: 'Development data – not for production. Verify every fare, route and schedule against official sources.' },
   settings: { defaultMaxWalkKm: 1, transferWalkKm: 0.5, maxWalkOnlyKm: 2.5, arriveBufferMin: 5, currency: 'PHP', timezone: 'Asia/Manila',
     scoring: { valueOfTimePerMin: 1.5, transferPenalty: 12, walkPenaltyPerKm: 25, waitMultiplier: 1.5, unknownFarePenalty: 80, lowConfidencePenalty: 20 } },
   cities, modes, operators, stops, lines, fareSchedules, providers, tricycleZones, places, advisories, timeProfiles,

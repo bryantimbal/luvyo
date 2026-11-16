@@ -13,7 +13,7 @@ const SUGGEST = [
 ];
 
 export default function assistant(el, { go }) {
-  const msgs = session.get('chat') || [{ role: 'bot', text: 'Kumusta! Ask me how to get somewhere, which jeep to take, or how much a trip costs. I only answer from SakayPinoy route and fare data – if something is missing, I will say so.' }];
+  const msgs = session.get('chat') || [{ role: 'bot', text: 'Kumusta! Ask me how to get somewhere, which jeep to take, or how much a trip costs. I only answer from LUVYO route and fare data – if something is missing, I will say so.' }];
   const draw = () => {
     el.innerHTML = `${header('Commute assistant')}
     <div class="chat" id="chat">${msgs.map((m, k) => `<div class="msg ${m.role === 'me' ? 'me' : 'bot'}">${esc(m.text)}</div>${m.options?.length ? `<div>${m.options.map((o, i) => routeCard(o, i).replace(/href="#\/route\/(\d+)"/, `href="#" data-open="${k}:$1"`)).join('')}</div>` : ''}`).join('')}

@@ -127,7 +127,7 @@ function reminder(o, j) {
   const def = o.recommendedDeparture ? new Date(o.recommendedDeparture) : new Date(Date.now() + 30 * 60000);
   const v = new Date(def.getTime() + 8 * 3600000).toISOString().slice(0, 16);
   sheet(`<h2>Departure reminder</h2><div class="stack"><label class="f" for="t">Remind me at (Manila time)</label><input class="input" type="datetime-local" id="t" value="${v}"><button class="btn block" id="ok">Set reminder</button>
-    <p class="muted small">Reminders fire while SakayPinoy is open. Background push needs Firebase Cloud Messaging to be configured.</p></div>`, {
+    <p class="muted small">Reminders fire while LUVYO is open. Background push needs Firebase Cloud Messaging to be configured.</p></div>`, {
     async onMount(sh, close) {
       sh.querySelector('#ok').onclick = async () => {
         const at = new Date(sh.querySelector('#t').value + ':00+08:00');

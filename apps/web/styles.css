@@ -31,8 +31,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* splash */
 #splash { position: fixed; inset: 0; z-index: 100; background: var(--green); color: #fff; display: grid; place-content: center; justify-items: center; gap: 8px; transition: opacity .5s; }
 #splash.gone { opacity: 0; pointer-events: none; }
-.splash-name { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
-.splash-tag { opacity: .9; font-size: .9rem; }
+.splash-name { font-size: 2.4rem; font-weight: 900; letter-spacing: .06em; }
+.splash-sub { font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; opacity: .85; margin-top: -6px; }
+.splash-tag { opacity: .9; font-size: .9rem; margin-top: 6px; }
 
 #offline-banner { position: sticky; top: 0; z-index: 30; background: var(--yellow); color: var(--text); padding: 6px 12px; font-size: .85rem; text-align: center; }
 
@@ -243,3 +244,6 @@ details.card summary { cursor: pointer; font-weight: 600; }
 .big-input { font-size: 1.4rem; font-weight: 800; }
 .lb .lb-rank { width: 36px; text-align: center; font-size: 1.2rem; font-weight: 800; }
 .lb li.me { background: var(--green-l); border-radius: 12px; }
+
+.lang-switch { display: inline-flex; gap: 4px; }
+.lang-switch .chip { padding: 5px 10px; font-size: .78rem; }

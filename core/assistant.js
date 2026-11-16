@@ -84,8 +84,8 @@ export function answer(ds, question, context = {}) {
   const origin = parsed.origin ?? context.currentLocation ?? null;
   if (!parsed.destination) {
     return { parsed, text: say(
-      "I couldn't find that destination in SakayPinoy's place list yet. Try a landmark, station or district name (e.g. “Cubao to BGC”).",
-      'Hindi ko pa makita ang destinasyon sa listahan ng SakayPinoy. Subukan ang landmark o istasyon (hal. “Cubao papuntang BGC”).') };
+      "I couldn't find that destination in LUVYO's place list yet. Try a landmark, station or district name (e.g. “Cubao to BGC”).",
+      'Hindi ko pa makita ang destinasyon sa listahan ng LUVYO. Subukan ang landmark o istasyon (hal. “Cubao papuntang BGC”).') };
   }
   if (origin && origin.name === parsed.destination.name) {
     return { parsed, text: say('Your start and destination look the same. Where are you coming from?', 'Mukhang pareho ang pinanggalingan at destinasyon. Saan ka manggagaling?') };
@@ -138,6 +138,6 @@ export function answer(ds, question, context = {}) {
   }
   const best = pick('best');
   if (best) lines.push(say('Steps for the recommended route:', 'Mga hakbang sa inirerekomendang ruta:'), ...best.legs.map((l, i) => `${i + 1}. ${l.instruction}`));
-  lines.push(say('Fares and times are estimates from SakayPinoy data; check labels in the route view.', 'Tantya lamang ang pamasahe at oras; tingnan ang mga label sa route view.'));
+  lines.push(say('Fares and times are estimates from LUVYO data; check labels in the route view.', 'Tantya lamang ang pamasahe at oras; tingnan ang mga label sa route view.'));
   return { parsed, plan, text: lines.join('\n') };
 }

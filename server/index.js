@@ -1,4 +1,4 @@
-// SakayPinoy API + static host. Zero dependencies (Node ≥ 20).
+// LUVYO API + static host. Zero dependencies (Node ≥ 20).
 //   npm start            → http://localhost:8787  (app)  /admin (admin portal)
 // Env: PORT, ADMIN_TOKENS="token:role:name,...", SUPABASE_URL, SUPABASE_ANON_KEY,
 //      SAKAY_DATA_FILE, CORS_ORIGIN
@@ -372,7 +372,7 @@ export const server = createServer(async (req, res) => {
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  server.listen(PORT, () => console.log(`SakayPinoy running → http://localhost:${PORT}  (admin: /admin)`));
+  server.listen(PORT, () => console.log(`LUVYO running → http://localhost:${PORT}  (admin: /admin)`));
   const bye = () => { repo.flush(); process.exit(0); };
   process.on('SIGINT', bye); process.on('SIGTERM', bye);
 }

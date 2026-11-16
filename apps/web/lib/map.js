@@ -12,7 +12,8 @@ export function createMap(el, { center = [14.5995, 121.0244], zoom = 12 } = {}) 
   if (typeof L === 'undefined') { el.innerHTML = '<p class="muted pad">Map unavailable.</p>'; return null; }
   // Animations off: screens tear maps down on navigation, and Leaflet throws
   // if a pan/zoom animation finishes after removal. Also lighter on low-end phones.
-  const map = L.map(el, { zoomControl: true, attributionControl: true, preferCanvas: true, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false }).setView(center, zoom);
+  // SVG renderer: canvas schedules redraws that can fire after a screen removes its map.
+  const map = L.map(el, { zoomControl: true, attributionControl: true, preferCanvas: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false }).setView(center, zoom);
   L.tileLayer(tileUrl, { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(map);
   setTimeout(() => { if (map._container?.isConnected && map._loaded) map.invalidateSize(false); }, 50);
   return map;

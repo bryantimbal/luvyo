@@ -6,7 +6,7 @@ import { planJourney, nearbyStops, linesPassing, compareProviders, estimateFare 
 import { answer } from '/core/assistant.js';
 import { store } from './store.js';
 
-const DS_KEY = 'sakaypinoy:dataset';
+const DS_KEY = 'luvyo:dataset';
 let memDs = null;
 
 async function call(path, opts = {}) {

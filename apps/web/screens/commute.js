@@ -1,6 +1,6 @@
 // Commute expense tracker (spec §16).
 import { store, uid } from '../lib/store.js';
-import { myNav, header, esc, peso, empty, toast, sheet, modeIcon } from '../lib/ui.js';
+import { MODE_LABEL, myNav, header, esc, peso, empty, toast, sheet, modeIcon } from '../lib/ui.js';
 
 const dayKey = (d) => new Date(new Date(d).getTime() + 8 * 3600000).toISOString().slice(0, 10);
 
@@ -51,7 +51,7 @@ export default function commute(el, { refresh }) {
     if (e.target.closest('[data-add]')) {
       sheet(`<h2>Add expense</h2><div class="stack">
         <div><label class="f" for="a">Amount (₱)</label><input class="input" id="a" type="number" min="0" step="0.25" inputmode="decimal" required></div>
-        <div><label class="f" for="m">Transport</label><select class="input" id="m">${['jeepney', 'bus', 'rail', 'uv', 'tricycle', 'mc_taxi', 'ridehail_car', 'taxi', 'ferry'].map((m) => `<option value="${m}">${modeIcon(m)} ${m}</option>`).join('')}</select></div>
+        <div><label class="f" for="m">Transport</label><select class="input" id="m">${['jeepney', 'bus', 'rail', 'uv', 'tricycle', 'mc_taxi', 'ridehail_car', 'taxi', 'ferry'].map((m) => `<option value="${m}">${modeIcon(m)} ${MODE_LABEL[m]}</option>`).join('')}</select></div>
         <div><label class="f" for="n">Note</label><input class="input" id="n" maxlength="80" placeholder="e.g. Cubao → Quiapo"></div>
         <div><label class="f" for="d">When</label><input class="input" id="d" type="datetime-local" value="${new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 16)}"></div>
         <button class="btn block" id="ok">Add</button></div>`, {
