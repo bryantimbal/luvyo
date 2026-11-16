@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LUVYO</string>
+    <string name="title_activity_main">LUVYO</string>
+    <string name="package_name">ph.luvyo.app</string>
+    <string name="custom_url_scheme">ph.luvyo.app</string>
+</resources>

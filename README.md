@@ -90,6 +90,18 @@ admin portal and accounts need the Node server, so they aren't in the demo.
 Demo URL: https://bryantimbal.github.io/luvyo/ (Settings → Pages → Source: *Deploy from a branch* →
 `gh-pages` / root).
 
+## Android app
+
+The Android app (Capacitor 8, targets Android 16 / API 36) lives in `android/`. Every push to `main`
+builds an installable APK on GitHub Actions. To build it locally:
+
+```bash
+npm run android:apk
+```
+
+The full procedure (install, Play Console, signing, store listing, data safety, testing tracks) is in
+[docs/ANDROID.md](docs/ANDROID.md).
+
 ## Languages
 
 English is the default. Users can switch to **Filipino** on the first onboarding screen, in Settings

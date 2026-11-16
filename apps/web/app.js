@@ -102,6 +102,7 @@ function demoBanner() {
   b.className = 'demo-banner';
   b.setAttribute('role', 'note');
   b.innerHTML = '<span><b>Demo build.</b> Runs on your phone with test data and simulated riders. Your reports stay on this device.</span><button type="button" aria-label="Dismiss">✕</button>';
+  // the Android app's status bar sits above the WebView, so no extra top inset is needed
   b.querySelector('button').onclick = () => { b.remove(); try { sessionStorage.setItem('luvyo:demo-ok', '1'); } catch {} };
   document.body.prepend(b);
 }
@@ -127,5 +128,8 @@ addEventListener('hashchange', render);
   community.flush();
   setTimeout(() => $('#splash')?.classList.add('gone'), 350);
   setTimeout(() => $('#splash')?.remove(), 900);
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // Service worker: web only. The Android app already ships every file inside the APK.
+  const nativeApp = !!globalThis.Capacitor?.isNativePlatform?.();
+  if (nativeApp) document.documentElement.classList.add('native-app');
+  if (!nativeApp && 'serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('/sw.js').catch(() => {});
 })();

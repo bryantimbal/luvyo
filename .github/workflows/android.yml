@@ -1,0 +1,65 @@
+# Builds the LUVYO Android app on every push to main (and on demand).
+# - Always: a debug APK you can install on a phone (Actions run → Artifacts → luvyo-debug-apk).
+# - If signing secrets are set: a signed release bundle (.aab) for the Play Store.
+#   Secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+name: Android build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Test engines
+        run: npm test
+
+      - name: Build web app and copy it into the Android project
+        run: npm run android:sync
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luvyo-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build signed release bundle (only when signing secrets exist)
+        if: ${{ env.KEYSTORE != '' }}
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: |
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$RUNNER_TEMP/upload.jks" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+          ./gradlew bundleRelease --no-daemon
+          rm -f keystore.properties "$RUNNER_TEMP/upload.jks"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ hashFiles('android/app/build/outputs/bundle/release/app-release.aab') != '' }}
+        with:
+          name: luvyo-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
