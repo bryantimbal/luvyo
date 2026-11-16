@@ -25,6 +25,12 @@ location and camera permissions. Everything below is already set up in this repo
 
 ### A1. Download the APK that GitHub builds for you (no setup)
 
+**Quickest:** on your phone, open
+**https://github.com/bryantimbal/luvyo/raw/android-builds/LUVYO-debug.apk**. That's always the newest
+build of `main`. Then continue at step 5.
+
+Or, from the Actions page:
+
 1. On GitHub, open **bryantimbal/luvyo → Actions → Android build**.
 2. Open the newest run with a green check. Every push to `main` starts one, or press
    **Run workflow** to start one.

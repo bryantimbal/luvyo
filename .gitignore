@@ -3,3 +3,4 @@ data/runtime/
 .env
 *.log
 dist/
+release-apk/

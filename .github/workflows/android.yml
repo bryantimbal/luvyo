@@ -9,6 +9,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write   # publish the latest APK to the android-builds branch
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,6 +46,19 @@ jobs:
         with:
           name: luvyo-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # Phone-friendly download: https://github.com/<owner>/<repo>/raw/android-builds/LUVYO-debug.apk
+      # The branch holds only the newest APK (replaced on every build, no history kept).
+      - name: Publish APK to the android-builds branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p "$RUNNER_TEMP/apk" && cd "$RUNNER_TEMP/apk"
+          cp "$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk" LUVYO-debug.apk
+          printf 'LUVYO debug APK\n\nBuilt from %s on %s.\nDownload: https://github.com/%s/raw/android-builds/LUVYO-debug.apk\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%MZ)" "$GITHUB_REPOSITORY" > README.md
+          git init -q -b android-builds
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -q -m "Debug APK for $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git" android-builds
 
       - name: Build signed release bundle (only when signing secrets exist)
         if: ${{ env.KEYSTORE != '' }}
