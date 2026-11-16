@@ -2,14 +2,18 @@
   "name": "luvyo",
   "version": "0.1.0",
   "private": true,
-  "description": "LUVYO – Philippine Mobility App. Multimodal route, fare and travel-time planner for the Philippines.",
+  "description": "LUVYO \u2013 Philippine Mobility App. Multimodal route, fare and travel-time planner for the Philippines.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "seed": "node data/seed/dev-seed.mjs",
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "build:static": "node scripts/build-static.mjs",
+    "deploy:pages": "bash scripts/deploy-pages.sh"
   },
   "license": "UNLICENSED"
 }

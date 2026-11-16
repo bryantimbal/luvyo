@@ -54,6 +54,7 @@ export default async function ambag(el, { go, refresh }) {
         <div class="conf"><div style="width:${Math.round(c.confidence * 100)}%"></div></div></span></li>`).join('')}</ul>`
         : '<p class="muted small">Your reports and their verification progress appear here.</p>'}
     </section>
+    ${globalThis.LUVYO_STANDALONE && me.contributions.some((c) => c.status !== 'community_verified') ? `<div class="card stack"><b>Demo: try verification</b><p class="muted small">In this demo you're the only real rider. Let the simulated riders confirm your open reports to see verification, points and reputation in action.</p><button class="btn soft" data-simulate>Have demo riders confirm my reports</button></div>` : ''}
     <details class="card small"><summary>How verification works</summary>
       <p>Every report needs agreement from other riders. Votes are weighted by reputation: new riders count ×0.6 until 3 of their reports are accepted, trusted riders up to ×2.5. A report becomes <b>Rider-verified</b> with enough weighted agreement from at least 3 different riders (about 5 new riders or 3 trusted ones). Confidence fades over time, so fares and routes get re-checked. Disagreement marks a report <b>Disputed</b> for moderators. Rider-verified data is never labelled “official”.</p>
       <p>Points: report +${me.pointsRules.fare}–${me.pointsRules.new_route}, confirm +1, your report verified +20. Reputation rises when your reports and votes match what other riders find, and falls when they don't.</p>
@@ -68,6 +69,11 @@ export default async function ambag(el, { go, refresh }) {
   }
 
   el.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-simulate]')) {
+      const { simulateRidersConfirm } = await import('../lib/standalone.js');
+      const n = await simulateRidersConfirm();
+      toast(`${n} report(s) confirmed by demo riders`, 'success'); refresh(); return;
+    }
     if (e.target.closest('[data-locate]')) { try { await currentPosition(); refresh(); } catch (err) { toast(err.message, 'error'); } }
     const v = e.target.closest('[data-vote]');
     if (!v) return;

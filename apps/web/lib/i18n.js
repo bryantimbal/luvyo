@@ -222,6 +222,9 @@ const PHRASES = {
   'e.g. Cubao → Quiapo': 'hal. Cubao → Quiapo', 'e.g. PHILCOA – KATIPUNAN': 'hal. PHILCOA – KATIPUNAN',
   'What did you pay?': 'Magkano ang ibinayad mo?', 'Indicative estimate': 'Tantya', 'Verified by riders (community)': 'Beripikado ng pasahero (komunidad)',
   'Official published': 'Opisyal na nailathala', 'Administrator-verified': 'Beripikado ng admin', 'Community-submitted (unverified)': 'Mula sa komunidad (hindi pa beripikado)',
+  'Demo build.': 'Demo build.', 'Runs on your phone with test data and simulated riders. Your reports stay on this device.': 'Tumatakbo sa iyong telepono gamit ang test data at simulated na mga pasahero. Nasa device mo lang ang iyong mga ulat.',
+  'Demo: try verification': 'Demo: subukan ang pag-verify', 'Have demo riders confirm my reports': 'Ipakumpirma sa demo riders ang aking mga ulat',
+  "In this demo you're the only real rider. Let the simulated riders confirm your open reports to see verification, points and reputation in action.": 'Sa demo na ito, ikaw lang ang totoong pasahero. Hayaang kumpirmahin ng simulated na mga pasahero ang iyong mga ulat para makita ang pag-verify, puntos at reputasyon.',
   // misc
   'Offline – showing cached data': 'Offline – naka-cache na data ang ipinapakita', 'Something went wrong': 'Nagkaproblema', 'Reload': 'I-reload',
   'Loading…': 'Naglo-load…', 'Comparing routes…': 'Ikinukumpara ang mga ruta…', 'Searching…': 'Naghahanap…', 'Checking routes…': 'Sinusuri ang mga ruta…',

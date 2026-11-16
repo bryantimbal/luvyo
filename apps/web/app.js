@@ -95,6 +95,17 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-back]')) { e.preventDefault(); history.length > 1 ? history.back() : go('#/home'); }
 });
 
+function demoBanner() {
+  if (!globalThis.LUVYO_STANDALONE) return;
+  try { if (sessionStorage.getItem('luvyo:demo-ok')) return; } catch {}
+  const b = document.createElement('div');
+  b.className = 'demo-banner';
+  b.setAttribute('role', 'note');
+  b.innerHTML = '<span><b>Demo build.</b> Runs on your phone with test data and simulated riders. Your reports stay on this device.</span><button type="button" aria-label="Dismiss">✕</button>';
+  b.querySelector('button').onclick = () => { b.remove(); try { sessionStorage.setItem('luvyo:demo-ok', '1'); } catch {} };
+  document.body.prepend(b);
+}
+
 function netBanner() {
   $('#offline-banner').hidden = navigator.onLine;
   $('#offline-banner').textContent = `Offline – showing cached data${store.get().lastSync ? ' (last synced ' + new Date(store.get().lastSync).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) + ')' : ''}`;
@@ -105,6 +116,7 @@ addEventListener('hashchange', render);
 
 (async function boot() {
   applyLanguage(); // English by default; Filipino if the user chose it
+  demoBanner();
   netBanner();
   const cfg = await api.config();
   auth.configure(cfg);

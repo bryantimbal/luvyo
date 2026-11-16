@@ -247,3 +247,6 @@ details.card summary { cursor: pointer; font-weight: 600; }
 
 .lang-switch { display: inline-flex; gap: 4px; }
 .lang-switch .chip { padding: 5px 10px; font-size: .78rem; }
+
+.demo-banner { position: sticky; top: 0; z-index: 35; display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; background: #1e293b; color: #f8fafc; font-size: .8rem; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
+.demo-banner button { background: none; border: 0; color: inherit; font-size: 1rem; cursor: pointer; padding: 0 4px; }

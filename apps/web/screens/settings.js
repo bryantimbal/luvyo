@@ -31,7 +31,7 @@ export default function settings(el, { refresh }) {
       <div class="row"><button class="btn sm" data-sync>Sync now</button><button class="btn sm ghost" data-clear>Clear cache</button></div>
       <p class="muted small">Cached data is used only when you're offline and is always labelled as cached.</p>
     </section>
-    <section class="card"><h2>About</h2><p class="small">LUVYO compares transport options using official, operator, administrator-verified, community and indicative data – each labelled. <a href="#/privacy">Privacy & Terms</a> · <a href="/admin/" target="_blank" rel="noopener">Admin portal</a></p></section>
+    <section class="card"><h2>About</h2><p class="small">LUVYO compares transport options using official, operator, administrator-verified, community and indicative data – each labelled. <a href="#/privacy">Privacy & Terms</a>${globalThis.LUVYO_STANDALONE ? '<br>Demo build: runs entirely on this phone. The admin portal and accounts need the LUVYO server.' : ' · <a href="/admin/" target="_blank" rel="noopener">Admin portal</a>'}</p></section>
   </div>`;
 
   el.addEventListener('change', (e) => {

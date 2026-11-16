@@ -80,6 +80,16 @@ docs/            Architecture, data verification, Play Store, notifications, roa
 - **Community reports never become official automatically.**
 - **Sponsored content cannot affect rankings.** `rankOptions` has no input for it.
 
+## Live demo (GitHub Pages)
+
+`npm run deploy:pages` builds a **standalone** version into `dist/` and publishes it to the
+`gh-pages` branch. It runs entirely in the browser: the same routing, fare, assistant and community
+engines, with test data and simulated riders (labelled "demo"). Rider data stays on the device. The
+admin portal and accounts need the Node server, so they aren't in the demo.
+
+Demo URL: https://bryantimbal.github.io/luvyo/ (Settings → Pages → Source: *Deploy from a branch* →
+`gh-pages` / root).
+
 ## Languages
 
 English is the default. Users can switch to **Filipino** on the first onboarding screen, in Settings
