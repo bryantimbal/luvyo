@@ -4,3 +4,4 @@ data/runtime/
 *.log
 dist/
 release-apk/
+apk/
