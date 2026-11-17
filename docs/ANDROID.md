@@ -12,7 +12,7 @@ location and camera permissions. Everything below is already set up in this repo
 | Permissions: internet, location (only when the rider taps), camera (report photos) | `android/app/src/main/AndroidManifest.xml` |
 | Release signing that reads a local, uncommitted `keystore.properties` | `android/app/build.gradle` |
 | Cloud build: debug APK on every push, plus a signed bundle when secrets exist | `.github/workflows/android.yml` |
-| Public privacy policy page (Play requires a URL) | `apps/web/privacy.html` → https://bryantimbal.github.io/luvyo/privacy.html |
+| Public privacy policy page (Play requires a URL) | `apps/web/privacy.html` → https://ninjatechph.github.io/luvyo/privacy.html |
 | Store graphics | `docs/store/` |
 
 > **Choose your track.** Part A gets the app onto your own phone in minutes. Part D publishes it on
@@ -26,12 +26,12 @@ location and camera permissions. Everything below is already set up in this repo
 ### A1. Download the APK that GitHub builds for you (no setup)
 
 **Quickest:** on your phone, open
-**https://github.com/bryantimbal/luvyo/raw/android-builds/LUVYO-debug.apk**. That's always the newest
+**https://github.com/ninjatechph/luvyo/raw/android-builds/LUVYO-debug.apk**. That's always the newest
 build of `main`. Then continue at step 5.
 
 Or, from the Actions page:
 
-1. On GitHub, open **bryantimbal/luvyo → Actions → Android build**.
+1. On GitHub, open **ninjatechph/luvyo → Actions → Android build**.
 2. Open the newest run with a green check. Every push to `main` starts one, or press
    **Run workflow** to start one.
 3. Under **Artifacts**, download **luvyo-debug-apk** (a zip) and unzip it to get `app-debug.apk`.
@@ -78,7 +78,7 @@ or plug the phone in and use Part C.
 5. Get the code and its dependencies:
 
    ```bash
-   git clone https://github.com/bryantimbal/luvyo.git
+   git clone https://github.com/ninjatechph/luvyo.git
    ```
 
    ```bash
@@ -200,7 +200,7 @@ Output: `android/app/build/outputs/bundle/release/app-release.aab`.
 
 | Section | What to enter for LUVYO |
 |---|---|
-| Privacy policy | `https://bryantimbal.github.io/luvyo/privacy.html` |
+| Privacy policy | `https://ninjatechph.github.io/luvyo/privacy.html` |
 | Ads | No, the app doesn't contain ads |
 | App access | All functionality is available without special access (no login needed) |
 | Content rating | Fill in the questionnaire: Reference/Utility, no violence or gambling. Users can share content (community reports) → Yes; mention moderation. Expected: Everyone / PEGI 3 |
@@ -302,8 +302,8 @@ Each run then also uploads a **luvyo-release-aab** artifact, ready for Play Cons
 
 A TWA is a thin Android shell around the hosted website. Updates go live without a Play upload, but it
 needs internet on first launch and **Digital Asset Links at the root of the domain**. The site at
-`bryantimbal.github.io/luvyo/` sits in a sub-folder, so a TWA would also need one of:
-- a repository named **`bryantimbal.github.io`** that serves `/.well-known/assetlinks.json`, or
+`ninjatechph.github.io/luvyo/` sits in a sub-folder, so a TWA would also need one of:
+- a repository named **`ninjatechph.github.io`** that serves `/.well-known/assetlinks.json`, or
 - a **custom domain** for the site (for example `luvyo.ph`), with `/.well-known/assetlinks.json` on it.
 
 Steps, if you choose this route:

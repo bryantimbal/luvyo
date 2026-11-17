@@ -87,7 +87,7 @@ docs/            Architecture, data verification, Play Store, notifications, roa
 engines, with test data and simulated riders (labelled "demo"). Rider data stays on the device. The
 admin portal and accounts need the Node server, so they aren't in the demo.
 
-Demo URL: https://bryantimbal.github.io/luvyo/ (Settings → Pages → Source: *Deploy from a branch* →
+Demo URL: https://ninjatechph.github.io/luvyo/ (Settings → Pages → Source: *Deploy from a branch* →
 `gh-pages` / root).
 
 ## Android app
