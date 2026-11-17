@@ -12,8 +12,8 @@ Legend: ✅ implemented and tested · 🟡 implemented with limits noted · ⏳ 
   (see DATA.md)
 - ✅ Fare engine, travel-time engine, multimodal comparison, saved routes, history
 - ✅ Admin dashboard: CRUD, moderation, import, audit, fare history, RBAC
-- 🟡 Supabase backend: migrations validated on Postgres 16 + PostGIS. The server still uses the JSON
-  repository; a Supabase-backed repository is next
+- ✅ Supabase backend: PostgreSQL repository with write-through persistence, sign-in-only contributions,
+  migrate/seed scripts, Render blueprint and Dockerfile (docs/BACKEND.md)
 
 ## Phase 2 – Advanced transportation
 - ✅ Motorcycle taxi and ride-hailing comparison, provider app and website links

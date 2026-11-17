@@ -1,7 +1,8 @@
 // LUVYO API + static host. Zero dependencies (Node ≥ 20).
 //   npm start            → http://localhost:8787  (app)  /admin (admin portal)
 // Env: PORT, ADMIN_TOKENS="token:role:name,...", SUPABASE_URL, SUPABASE_ANON_KEY,
-//      SAKAY_DATA_FILE, CORS_ORIGIN
+//      SAKAY_DATA_FILE, CORS_ORIGIN (comma-separated origins, or *),
+//      DATABASE_URL (PostgreSQL / Supabase; without it the JSON file is used)
 
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -10,6 +11,7 @@ import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { JsonRepository, activeAdvisories, httpError, COLLECTIONS } from './repo.js';
+import { PgRepository } from './pgRepository.js';
 import { planJourney, nearbyStops, linesPassing, compareProviders, estimateFare } from '../core/router.js';
 import { answer } from '../core/assistant.js';
 import { applyCommunity } from '../core/community.js';
@@ -18,7 +20,9 @@ import { PASSENGER_TYPES } from '../core/fareEngine.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = +process.env.PORT || 8787;
-export const repo = new JsonRepository();
+// PostgreSQL (Supabase) when DATABASE_URL is set; otherwise the local JSON file.
+export const repo = process.env.DATABASE_URL ? new PgRepository(process.env.DATABASE_URL) : new JsonRepository();
+repo.ready ??= Promise.resolve(repo);
 
 // Engine dataset = raw data + verified community data. Rebuilt when data changes
 // and every 10 minutes (confidence decays with time).
@@ -101,7 +105,7 @@ const SEC_HEADERS = {
 };
 function send(res, status, data, headers = {}) {
   const isBuf = Buffer.isBuffer(data) || typeof data === 'string';
-  res.writeHead(status, { ...SEC_HEADERS, 'Content-Type': isBuf ? headers['Content-Type'] || 'text/plain; charset=utf-8' : 'application/json; charset=utf-8', ...(process.env.CORS_ORIGIN ? { 'Access-Control-Allow-Origin': process.env.CORS_ORIGIN } : {}), ...headers });
+  res.writeHead(status, { ...SEC_HEADERS, 'Content-Type': isBuf ? headers['Content-Type'] || 'text/plain; charset=utf-8' : 'application/json; charset=utf-8', ...headers });
   res.end(isBuf ? data : JSON.stringify(data));
 }
 
@@ -113,7 +117,7 @@ const on = (method, pattern, handler) => {
   routes.push({ method, re, keys, handler });
 };
 
-on('GET', '/api/health', () => ({ ok: true, version: repo.version, dataset: repo.dataset().meta }));
+on('GET', '/api/health', () => ({ ok: true, storage: repo instanceof PgRepository ? 'postgres' : 'json', version: repo.version, dataset: repo.dataset().meta }));
 on('GET', '/api/config', () => ({
   supabaseUrl: process.env.SUPABASE_URL || null,
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null, // anon key is public by design; never the service-role key
@@ -230,6 +234,7 @@ on('POST', '/api/reports', async ({ req }) => {
     status: 'pending', createdAt: new Date().toISOString(), sourceType: 'community',
   };
   repo.dataset().reports.push(rec);
+  repo.changed?.('reports', rec);
   repo.touch();
   return { id: rec.id, status: rec.status };
 });
@@ -346,9 +351,19 @@ async function serveStatic(res, path) {
   }
 }
 
+// The Android app (https://localhost) and the website call the API from other origins.
+const CORS = (process.env.CORS_ORIGIN || '').split(',').map((x) => x.trim()).filter(Boolean);
+function cors(req, res) {
+  const o = req.headers.origin;
+  if (!o || !CORS.length) return;
+  if (CORS.includes('*') || CORS.includes(o)) { res.setHeader('Access-Control-Allow-Origin', CORS.includes('*') ? '*' : o); res.setHeader('Vary', 'Origin'); }
+}
+
 export const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
+  cors(req, res);
   try {
+    await repo.ready;
     if (req.method === 'OPTIONS') return send(res, 204, '', { 'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Contributor-Id' });
     if (url.pathname.startsWith('/api/')) {
       rateLimit(req, 0.5, 600);
@@ -358,6 +373,7 @@ export const server = createServer(async (req, res) => {
         if (!m) continue;
         const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]));
         const out = await r.handler({ req, res, params, q: Object.fromEntries(url.searchParams) });
+        if (req.method !== 'GET') await repo.persist?.(); // database: write before answering
         return send(res, 200, out, { 'Cache-Control': 'no-store' });
       }
       throw httpError(404, 'No such endpoint');
@@ -372,7 +388,8 @@ export const server = createServer(async (req, res) => {
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  server.listen(PORT, () => console.log(`LUVYO running → http://localhost:${PORT}  (admin: /admin)`));
-  const bye = () => { repo.flush(); process.exit(0); };
+  repo.ready.then(() => server.listen(PORT, () => console.log(`LUVYO running → http://localhost:${PORT}  (admin: /admin) · storage: ${repo instanceof PgRepository ? 'PostgreSQL' : 'JSON file'}`)))
+    .catch((e) => { console.error('Could not load data:', e.message); process.exit(1); });
+  const bye = async () => { await repo.flush(); process.exit(0); };
   process.on('SIGINT', bye); process.on('SIGTERM', bye);
 }

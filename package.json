@@ -2,7 +2,7 @@
   "name": "luvyo",
   "version": "0.1.0",
   "private": true,
-  "description": "LUVYO \u2013 Philippine Mobility App. Multimodal route, fare and travel-time planner for the Philippines.",
+  "description": "LUVYO – Philippine Mobility App. Multimodal route, fare and travel-time planner for the Philippines.",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -17,14 +17,17 @@
     "android:sync": "node scripts/build-static.mjs && npx cap sync android",
     "android:open": "npx cap open android",
     "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
-    "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease"
+    "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "db:seed": "node scripts/db-seed.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "@capacitor/android": "8.6.0",
-    "@capacitor/core": "8.6.0"
+    "pg": "8.23.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "8.6.0"
+    "@capacitor/android": "8.6.0",
+    "@capacitor/cli": "8.6.0",
+    "@capacitor/core": "8.6.0"
   }
 }

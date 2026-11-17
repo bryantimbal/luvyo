@@ -41,7 +41,8 @@ Requirements: Node ≥ 20. There are no npm dependencies; Leaflet 1.9.4 is vendo
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Used for account deletion; never sent to clients |
 | `TILE_URL` | Map tile template (default: OpenStreetMap. Use your own tile provider in production) |
 | `SAKAY_DATA_FILE` | Path of the JSON repository (default `data/runtime/dataset.json`, copied from the seed) |
-| `CORS_ORIGIN` | Allowed origin if the API is served separately |
+| `DATABASE_URL` | PostgreSQL / Supabase connection string. When set, the server stores everything in the database and contributors must sign in. See [docs/BACKEND.md](docs/BACKEND.md) |
+| `CORS_ORIGIN` | Comma-separated origins allowed to call the API (Android app: `https://localhost`) |
 
 ## What's in the box
 
@@ -79,6 +80,15 @@ docs/            Architecture, data verification, Play Store, notifications, roa
   official app or site.
 - **Community reports never become official automatically.**
 - **Sponsored content cannot affect rankings.** `rankOptions` has no input for it.
+
+## Backend (Supabase + Render)
+
+To set up the database, sign-in and a hosted server, and to point the Android app at it, follow
+[docs/BACKEND.md](docs/BACKEND.md). Database tests run against a real PostgreSQL + PostGIS:
+
+```bash
+TEST_DATABASE_URL=postgresql://postgres@localhost:5432/postgres npm test
+```
 
 ## Live demo (GitHub Pages)
 

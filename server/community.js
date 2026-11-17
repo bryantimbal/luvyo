@@ -11,7 +11,7 @@ const tokenCache = new Map();
 
 export function registerCommunity(on, { repo, engineDs, rateLimit, body, str, num, adminFor }) {
   const raw = () => repo.dataset();
-  const svc = createCommunityService({ raw, engineDs, touch: () => repo.touch() });
+  const svc = createCommunityService({ raw, engineDs, touch: () => repo.touch(), changed: (c, r) => repo.changed?.(c, r) });
   const people = () => svc.people();
   const settle = (c) => svc.settle(c);
 
@@ -30,8 +30,11 @@ export function registerCommunity(on, { repo, engineDs, rateLimit, body, str, nu
         tokenCache.set(tok, hit);
       }
       id = hit.id; name ||= hit.name;
+    } else if (repo.requiresAuth) {
+      // With a database, contributors must be real signed-in users (anti-abuse).
+      throw httpError(503, 'Contributions need sign-in, which is not configured on this server yet.');
     } else {
-      id = str(b.contributorId ?? req.headers['x-contributor-id'], 80);
+      id = str(b.contributorId ?? req.headers['x-contributor-id'], 80); // local/demo only
     }
     return svc.ensureContributor(id, name);
   }
@@ -93,6 +96,7 @@ export function registerCommunity(on, { repo, engineDs, rateLimit, body, str, nu
     const before = { ...c };
     if (b.suspended != null) c.suspended = !!b.suspended;
     if (b.reputationDelta != null) c.reputation = (c.reputation || 0) + Math.max(-100, Math.min(100, num(b.reputationDelta, 'reputationDelta')));
+    repo.changed?.('contributors', c);
     repo.audit(actor, 'update', 'contributors', c.id, before, { ...c });
     repo.touch();
     return c;

@@ -9,8 +9,12 @@ import { store } from './store.js';
 const DS_KEY = 'luvyo:dataset';
 let memDs = null;
 
+/** Server address. Empty = same origin (the server hosts the app) or the in-app demo stand-in.
+ *  Set at build time for apps that talk to a hosted server (see scripts/build-static.mjs --api). */
+export const apiUrl = (path) => (globalThis.LUVYO_API_BASE || '') + path;
+
 async function call(path, opts = {}) {
-  const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const res = await fetch(apiUrl(path), { headers: { 'Content-Type': 'application/json' }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) { const e = new Error(data.error || `Request failed (${res.status})`); e.status = res.status; throw e; }
   return data;

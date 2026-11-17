@@ -1,0 +1,11 @@
+node_modules
+android
+dist
+apk
+data/runtime
+.git
+.github
+tests
+docs
+*.log
+.env

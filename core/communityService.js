@@ -5,6 +5,8 @@
 //   raw()      → the raw dataset (contributions, confirmations, contributors, pointsEvents …)
 //   engineDs() → raw + verified community data (applyCommunity), used for lookups
 //   touch()    → persist after a change
+//   changed(collection, record) → optional: the exact record that changed
+//                (the PostgreSQL repository writes just those rows)
 
 import {
   CONTRIB_TYPES, COMMUNITY_MODES, RULES, REWARDS, evaluate, plausibility, trimTrace, simplifyTrace,
@@ -23,7 +25,7 @@ const uuid = () => globalThis.crypto.randomUUID();
 const num = (v, name) => { const n = Number(v); if (!Number.isFinite(n)) fail(400, `${name} must be a number`); return n; };
 const str = (v, max = 2000) => (v == null ? null : String(v).slice(0, max));
 
-export function createCommunityService({ raw, engineDs, touch = () => {} }) {
+export function createCommunityService({ raw, engineDs, touch = () => {}, changed = () => {} }) {
   const people = () => new Map(raw().contributors.map((c) => [c.id, c]));
   const confsOf = (id) => raw().confirmations.filter((f) => f.contributionId === id);
 
@@ -32,8 +34,8 @@ export function createCommunityService({ raw, engineDs, touch = () => {} }) {
     const ds = raw();
     const name = str(displayName, 40);
     let c = ds.contributors.find((x) => x.id === id);
-    if (!c) { c = { id, displayName: name || `Rider-${String(id).slice(0, 4)}`, points: 0, reputation: 0, stats: { accepted: 0 }, createdAt: new Date().toISOString() }; ds.contributors.push(c); }
-    else if (name && name !== c.displayName) c.displayName = name;
+    if (!c) { c = { id, displayName: name || `Rider-${String(id).slice(0, 4)}`, points: 0, reputation: 0, stats: { accepted: 0 }, createdAt: new Date().toISOString() }; ds.contributors.push(c); changed('contributors', c); }
+    else if (name && name !== c.displayName) { c.displayName = name; changed('contributors', c); }
     if (c.suspended) fail(403, 'Your contributor account is suspended.');
     return c;
   }
@@ -43,8 +45,9 @@ export function createCommunityService({ raw, engineDs, touch = () => {} }) {
     c.points = Math.max(0, (c.points || 0) + points);
     c.reputation = (c.reputation || 0) + rep;
     const ev = raw().pointsEvents;
-    if (points) ev.push({ contributorId: c.id, points, reason, at: new Date().toISOString() });
+    if (points) { const e = { contributorId: c.id, points, reason, at: new Date().toISOString() }; ev.push(e); changed('pointsEvents', e); }
     if (ev.length > 50000) ev.splice(0, 10000);
+    changed('contributors', c);
   }
 
   /** Re-evaluate a contribution and pay out rewards exactly once per outcome. */
@@ -56,7 +59,7 @@ export function createCommunityService({ raw, engineDs, touch = () => {} }) {
     if (e.status === 'community_verified' && c.rewarded !== 'verified') {
       const sub = who.get(c.contributorId);
       award(sub, REWARDS.verifiedBonus, `verified ${c.type}`, REWARDS.verifiedRep);
-      if (sub) sub.stats = { ...(sub.stats || {}), accepted: (sub.stats?.accepted || 0) + 1 };
+      if (sub) { sub.stats = { ...(sub.stats || {}), accepted: (sub.stats?.accepted || 0) + 1 }; changed('contributors', sub); }
       for (const f of confs) award(who.get(f.contributorId), f.agree ? 2 : 0, 'confirmed correctly', f.agree ? REWARDS.confirmerRep : REWARDS.wrongConfirmRep);
       c.rewarded = 'verified'; c.everVerified = true;
     } else if (e.status === 'rejected' && c.rewarded !== 'rejected') {
@@ -64,6 +67,7 @@ export function createCommunityService({ raw, engineDs, touch = () => {} }) {
       for (const f of confs) award(who.get(f.contributorId), f.agree ? 0 : 2, 'disputed correctly', f.agree ? REWARDS.wrongConfirmRep : REWARDS.rightDisputeRep);
       c.rewarded = 'rejected';
     }
+    changed('contributions', c);
     return e;
   }
 
@@ -110,8 +114,9 @@ export function createCommunityService({ raw, engineDs, touch = () => {} }) {
     };
     if (p.lat != null) { p.lat = rec.lat; p.lng = rec.lng; }
     raw().contributions.push(rec);
-    award(contributor, CONTRIB_TYPES[type].points, `submitted ${type}`);
+    changed('contributions', rec);
     contributor.stats = { ...(contributor.stats || {}), submitted: (contributor.stats?.submitted || 0) + 1 };
+    award(contributor, CONTRIB_TYPES[type].points, `submitted ${type}`);
     const e = settle(rec);
     touch();
     return { ...rec, ...e, question: questionFor(rec, ds), pointsEarned: CONTRIB_TYPES[type].points };
@@ -129,7 +134,9 @@ export function createCommunityService({ raw, engineDs, touch = () => {} }) {
     if (c.contributorId === me.id) fail(403, "You can't confirm your own report");
     if (confsOf(c.id).some((f) => f.contributorId === me.id)) fail(409, 'You already answered this one');
     const near = b.lat != null && c.lat != null ? haversineKm({ lat: num(b.lat, 'lat'), lng: num(b.lng, 'lng') }, c) <= RULES.nearbyKm : undefined;
-    raw().confirmations.push({ id: uuid(), contributionId: c.id, contributorId: me.id, agree, near, at: new Date().toISOString() });
+    const conf = { id: uuid(), contributionId: c.id, contributorId: me.id, agree, near, at: new Date().toISOString() };
+    raw().confirmations.push(conf);
+    changed('confirmations', conf);
     award(me, REWARDS.confirm, 'confirmation');
     let counter = null;
     // "No, it's ₱15" → the correction becomes the rider's own report for others to confirm
@@ -171,9 +178,11 @@ export function createCommunityService({ raw, engineDs, touch = () => {} }) {
   }
 
   function ranking(period) {
-    const since = period === 'week' ? Date.now() - 7 * 86400000 : period === 'month' ? Date.now() - 30 * 86400000 : 0;
+    const since = period === 'week' ? Date.now() - 7 * 86400000 : period === 'month' ? Date.now() - 30 * 86400000 : null;
     const sums = new Map();
-    for (const e of raw().pointsEvents) if (new Date(e.at) >= since) sums.set(e.contributorId, (sums.get(e.contributorId) || 0) + e.points);
+    // all-time uses each rider's running total; weekly/monthly add up recent points events
+    if (since == null) for (const c of raw().contributors) { if (c.points > 0) sums.set(c.id, c.points); }
+    else for (const e of raw().pointsEvents) if (new Date(e.at) >= since) sums.set(e.contributorId, (sums.get(e.contributorId) || 0) + e.points);
     const who = people();
     return [...sums].filter(([id]) => who.get(id) && !who.get(id).suspended).sort((a, b) => b[1] - a[1]).map(([id, points]) => {
       const c = who.get(id);

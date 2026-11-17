@@ -1,0 +1,26 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repository.
+# Secrets marked `sync: false` are asked for when you create the Blueprint.
+services:
+  - type: web
+    name: luvyo-api
+    runtime: node
+    plan: free            # sleeps when idle; pick "starter" for always-on
+    region: singapore     # closest Render region to the Philippines
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL           # Supabase → Connect → Session pooler URI
+        sync: false
+      - key: SUPABASE_URL           # https://<project-ref>.supabase.co
+        sync: false
+      - key: SUPABASE_ANON_KEY      # public anon key
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY   # server-only; used for account deletion
+        sync: false
+      - key: ADMIN_TOKENS           # token:role:name,…  (roles: superadmin, data_editor, moderator, viewer)
+        sync: false
+      - key: CORS_ORIGIN            # Android app + website
+        value: https://localhost,https://ninjatechph.github.io

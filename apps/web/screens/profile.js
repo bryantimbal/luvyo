@@ -1,6 +1,6 @@
 import { store } from '../lib/store.js';
 import { auth } from '../lib/auth.js';
-import { api } from '../lib/api.js';
+import { api, apiUrl } from '../lib/api.js';
 import { header, esc, toast, $ } from '../lib/ui.js';
 import { t, applyLanguage } from '../lib/i18n.js';
 
@@ -53,7 +53,7 @@ export default async function profile(el, { go, refresh }) {
       if (!confirm('Delete all your LUVYO data on this device' + (auth.user() ? ' and request deletion of your account' : '') + '? This cannot be undone.')) return;
       if (auth.user()) {
         // Account deletion runs server-side (Supabase edge function `delete-account`, see docs) with the user's own token.
-        try { await fetch('/api/account', { method: 'DELETE', headers: { Authorization: 'Bearer ' + auth.session().access_token } }); } catch {}
+        try { await fetch(apiUrl('/api/account'), { method: 'DELETE', headers: { Authorization: 'Bearer ' + auth.session().access_token } }); } catch {}
         await auth.signOut();
       }
       store.reset();

@@ -3,6 +3,7 @@
 import { store } from './store.js';
 import { auth } from './auth.js';
 import { toast } from './ui.js';
+import { apiUrl } from './api.js';
 
 const OUTBOX = 'luvyo:outbox';
 
@@ -14,7 +15,7 @@ function headers() {
 }
 
 async function call(path, opts = {}) {
-  const res = await fetch(path, { ...opts, headers: headers(), body: opts.body ? JSON.stringify({ displayName: store.get().profile.name || undefined, ...opts.body }) : undefined });
+  const res = await fetch(apiUrl(path), { ...opts, headers: headers(), body: opts.body ? JSON.stringify({ displayName: store.get().profile.name || undefined, ...opts.body }) : undefined });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) { const e = new Error(data.error || `Request failed (${res.status})`); e.status = res.status; throw e; }
   return data;

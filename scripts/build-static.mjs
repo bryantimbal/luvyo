@@ -1,6 +1,9 @@
-// Builds a standalone static version of the LUVYO app (no server) into dist/.
-// Used for GitHub Pages: everything runs in the browser, rider data stays on the device.
+// Builds a static version of the LUVYO app into dist/ (GitHub Pages, Android).
 //   node scripts/build-static.mjs
+//       Standalone demo: engines + demo data run in the browser, rider data stays on the device.
+//   node scripts/build-static.mjs --api https://api.example.com     (or LUVYO_API_BASE=...)
+//       Connected app: talks to a hosted LUVYO server (accounts, shared community data).
+//       The server must list the app's origin in CORS_ORIGIN (Android: https://localhost).
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +12,9 @@ import { createCommunityService } from '../core/communityService.js';
 import { seedDemoCommunity } from '../data/seed/demo-community.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const argApi = process.argv.find((a) => a.startsWith('--api'));
+const API_BASE = (argApi?.includes('=') ? argApi.split('=')[1] : argApi ? process.argv[process.argv.indexOf(argApi) + 1] : process.env.LUVYO_API_BASE || '').replace(/\/+$/, '');
+if (API_BASE && !/^https:\/\//.test(API_BASE) && !/^http:\/\/(localhost|127\.0\.0\.1)/.test(API_BASE)) throw new Error('--api must be an https:// URL');
 const out = join(root, 'dist');
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
@@ -38,9 +44,9 @@ for (const f of walk(out)) {
   s = s.replace(ASSET, '$1./$2');
   writeFileSync(f, s);
 }
-// 3. standalone stand-in loads before the app
+// 3. demo: the in-browser stand-in loads before the app; connected: point the app at the server
 const app = join(out, 'app.js');
-writeFileSync(app, "import './lib/standalone.js';\n" + readFileSync(app, 'utf8'));
+writeFileSync(app, (API_BASE ? `globalThis.LUVYO_API_BASE = ${JSON.stringify(API_BASE)};\n` : "import './lib/standalone.js';\n") + readFileSync(app, 'utf8'));
 // 4. manifest + service worker for a sub-folder site
 const mf = JSON.parse(readFileSync(join(out, 'manifest.webmanifest'), 'utf8'));
 Object.assign(mf, { id: './', start_url: './#/home', scope: './' });
@@ -54,4 +60,4 @@ writeFileSync(sw, readFileSync(sw, 'utf8')
 writeFileSync(join(out, '.nojekyll'), '');
 cpSync(join(out, 'index.html'), join(out, '404.html'));
 rmSync(join(out, 'icons/.gitkeep'), { force: true });
-console.log(`Built ${out}: ${walk(out).length} files, ${ds.contributions.length} demo contributions`);
+console.log(`Built ${out}: ${walk(out).length} files · ${API_BASE ? `connected to ${API_BASE}` : `standalone demo (${ds.contributions.length} demo contributions)`}`);

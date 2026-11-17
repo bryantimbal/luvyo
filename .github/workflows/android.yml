@@ -16,6 +16,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:          # for the database tests (tests/pg.test.js)
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -32,10 +40,17 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
-      - name: Test engines
+      - name: Test engines, API and database
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: npm test
 
+      # Set the repository variable LUVYO_API_BASE (Settings → Secrets and variables → Actions →
+      # Variables) to your server, e.g. https://luvyo-api.onrender.com, to build the connected app.
+      # Without it the APK is the standalone demo.
       - name: Build web app and copy it into the Android project
+        env:
+          LUVYO_API_BASE: ${{ vars.LUVYO_API_BASE }}
         run: npm run android:sync
 
       - name: Build debug APK
