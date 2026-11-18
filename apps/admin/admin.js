@@ -1,6 +1,7 @@
 // LUVYO admin portal. Talks only to /api/admin/* with a role-scoped bearer token.
 // Every change is audit-logged server-side; fare edits also go to fare history.
 import { SOURCE_TYPES } from '/core/trust.js';
+import { resolutions } from '/admin/resolutions.js';
 
 const app = document.getElementById('app');
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -35,7 +36,7 @@ const COLS = {
   cities: { title: 'Cities (coverage)', perm: 'write:data', cols: [['name', 'Name'], ['region', 'Region'], ['active', 'Active', (v) => (v ? '✓' : '—')]], template: { id: '', name: '', region: '', active: false } },
 };
 
-const NAV = [['dashboard', '📊 Dashboard'], ['lines', '🚙 Routes'], ['stops', '🚏 Stops'], ['fareSchedules', '₱ Fares'], ['operators', '🏢 Operators'], ['providers', '🏍️ Providers'], ['tricycleZones', '🛺 Tricycle zones'], ['places', '📌 Places'], ['advisories', '⚠️ Advisories'], ['cities', '🗺️ Cities'], ['community', '👥 Community queue'], ['contributors', '🏅 Contributors'], ['reports', '🚩 Issue reports'], ['import', '⬆️ Import'], ['fareHistory', '🕘 Fare history'], ['audit', '📜 Audit log']];
+const NAV = [['dashboard', '📊 Dashboard'], ['lines', '🚙 Routes'], ['stops', '🚏 Stops'], ['fareSchedules', '₱ Fares'], ['operators', '🏢 Operators'], ['providers', '🏍️ Providers'], ['tricycleZones', '🛺 Tricycle zones'], ['places', '📌 Places'], ['advisories', '⚠️ Advisories'], ['cities', '🗺️ Cities'], ['community', '👥 Community queue'], ['contributors', '🏅 Contributors'], ['reports', '🚩 Issue reports'], ['resolutions', '📜 LTFRB resolutions'], ['import', '⬆️ Import'], ['fareHistory', '🕘 Fare history'], ['audit', '🧾 Audit log']];
 
 function shell(active, body) {
   app.innerHTML = `<div class="layout"><aside><div class="brand"><img src="/icons/icon.svg" alt="">LUVYO Admin</div>
@@ -190,6 +191,7 @@ async function route() {
     else if (k === 'community') await communityQueue();
     else if (k === 'contributors') await contributors();
     else if (k === 'import') importer();
+    else if (k === 'resolutions') await resolutions({ call, shell, esc, can, app });
     else if (k === 'audit' || k === 'fareHistory') await logView(k);
     else if (COLS[k]) await collection(k);
     else location.hash = 'dashboard';

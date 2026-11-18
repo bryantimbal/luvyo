@@ -156,3 +156,19 @@ test('issue reports, moderation and suspensions persist', { skip }, async () => 
   assert.equal((await sql.query('select is_suspended from contributors where user_id = $1', [users[1].id])).rows[0].is_suspended, true);
   assert.equal((await j('/api/community/contributions', { method: 'POST', user: users[1], body: { type: 'wait', lineId: 'jp-cubao-quiapo', payload: { minutes: 5 } } })).status, 403);
 });
+
+test('routes from an LTFRB resolution persist with their legal basis and path', { skip }, async () => {
+  const resolution = { number: '383', series: '2026', dateSigned: '2026-09-18', action: 'modification', modeId: 'jeepney', routeName: 'Lagro (Hilltop) – Stop & Shop', previousRoute: 'Lagro – Cubao via Kalayaan', caseNumber: 'NCR-PUJ-2018-06-00076', lengthKm: 26, units: 25, conditions: ['Subject to the Route Rationalization Study'] };
+  const wp = [{ lat: 14.734, lng: 121.0707, label: 'Lagro (Hilltop)' }, { lat: 14.6203, lng: 121.0533, label: 'Araneta City Bus Port' }, { lat: 14.6019, lng: 121.0118, label: 'Sta. Mesa (Stop & Shop)' }];
+  const r = await j('/api/admin/resolutions/apply', { method: 'POST', admin: 'tok-super', body: { resolution, directions: [{ dir: 'westbound', waypoints: wp, shape: wp.map((p) => [p.lat, p.lng]), km: 29.2 }] } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const db = (await sql.query("select is_verified, is_operational, bidirectional, source_type::text, ST_NPoints(shape::geometry) n from transport_routes where external_id = 'br2026-383-westbound'")).rows[0];
+  assert.deepEqual(db, { is_verified: false, is_operational: false, bidirectional: false, source_type: 'official', n: 3 });
+  const re = await reloaded();
+  const l = re.get('lines', 'br2026-383-westbound');
+  assert.equal(l.legalBasis.caseNumber, 'NCR-PUJ-2018-06-00076');
+  assert.match(l.sourceNote, /LTFRB BR No\. 383/);
+  assert.equal(l.shape.length, 3);
+  assert.equal(re.get('stops', l.stopIds[0]).kind, 'terminal');
+  await re.close();
+});

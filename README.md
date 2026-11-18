@@ -12,7 +12,8 @@ ride-hailing options for a trip in the Philippines. For each option it shows the
 > approximate. Fares are indicative figures based on publicly reported fare orders, and the jeepney, UV
 > and bus corridors are illustrative test routes marked *not verified*. Every such record is tagged
 > `dataset: "development"` and shows a **DEV DATA** badge in the app. Before launch, replace it using
-> the admin portal or an import (see [docs/DATA.md](docs/DATA.md)).
+> the admin portal or an import (see [docs/DATA.md](docs/DATA.md)). LTFRB board resolutions (PDF) can be
+> turned into routes in the admin portal: see [docs/RESOLUTIONS.md](docs/RESOLUTIONS.md).
 
 ## Quick start
 

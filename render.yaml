@@ -3,15 +3,12 @@
 services:
   - type: web
     name: luvyo-api
-    runtime: node
+    runtime: docker       # the Dockerfile adds PDF/OCR tools for importing LTFRB resolutions
+    dockerfilePath: ./Dockerfile
     plan: free            # sleeps when idle; pick "starter" for always-on
     region: singapore     # closest Render region to the Philippines
-    buildCommand: npm ci --omit=dev
-    startCommand: node server/index.js
     healthCheckPath: /api/health
     envVars:
-      - key: NODE_VERSION
-        value: "22"
       - key: DATABASE_URL           # Supabase → Connect → Session pooler URI
         sync: false
       - key: SUPABASE_URL           # https://<project-ref>.supabase.co
@@ -24,3 +21,5 @@ services:
         sync: false
       - key: CORS_ORIGIN            # Android app + website
         value: https://localhost,https://ninjatechph.github.io
+      - key: ANTHROPIC_API_KEY      # optional: lets Claude read scanned resolutions (annex tables) more accurately than OCR
+        sync: false

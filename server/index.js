@@ -16,6 +16,7 @@ import { planJourney, nearbyStops, linesPassing, compareProviders, estimateFare 
 import { answer } from '../core/assistant.js';
 import { applyCommunity } from '../core/community.js';
 import { registerCommunity } from './community.js';
+import { registerResolutions } from './resolutions.js';
 import { PASSENGER_TYPES } from '../core/fareEngine.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -257,6 +258,8 @@ on('DELETE', '/api/account', async ({ req }) => {
 registerCommunity(on, { repo, engineDs, rateLimit, body, str, num, adminFor: (req, p) => adminFor(req, p) });
 
 // ----------------------------------------------------------------- admin ---
+registerResolutions(on, { repo, body, adminFor: (req, p) => adminFor(req, p), httpError, validate: (c, r) => validate(c, r) });
+
 on('GET', '/api/admin/me', ({ req }) => { const a = adminFor(req, 'read'); return { ...a, perms: ROLE_PERMS[a.role] }; });
 on('GET', '/api/admin/analytics', ({ req }) => {
   adminFor(req, 'read');

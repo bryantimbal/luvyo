@@ -85,6 +85,10 @@ npm run db:seed
    | `SUPABASE_ANON_KEY` | The anon public key |
    | `SUPABASE_SERVICE_ROLE_KEY` | The service_role key |
    | `ADMIN_TOKENS` | `<long-random-token>:superadmin:Bryan`. Use a new token, not the one you used locally |
+   | `ANTHROPIC_API_KEY` | Optional. Lets Claude read uploaded LTFRB resolutions (see [RESOLUTIONS.md](RESOLUTIONS.md)). Leave empty to use OCR |
+
+   Render builds the server from the `Dockerfile`, which also installs the PDF and OCR tools used by
+   the resolution importer.
 
    `CORS_ORIGIN` is pre-filled with `https://localhost` (the Android app) and
    `https://ninjatechph.github.io` (the website).

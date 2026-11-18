@@ -1,6 +1,8 @@
 # LUVYO API + web app server. Works on any container host (Render, Fly.io, Railway, Cloud Run).
 FROM node:22-slim
 WORKDIR /app
+# PDF tools + OCR for scanned LTFRB resolutions (admin → LTFRB resolutions)
+RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr tesseract-ocr-eng && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production PORT=8787
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
